@@ -7,31 +7,29 @@ import edu.upc.epsevg.prop.othello.IPlayer;
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
 import edu.upc.epsevg.prop.othello.players.Thundarr.Thundarr;
 
-
 import javax.swing.SwingUtilities;
 
 /**
  * Lines Of Action: el joc de taula.
+ * 
  * @author bernat
  */
 public class Game {
-        /**
+    /**
      * @param args
      */
     public static void main(String[] args) {
-        
-        
+
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                
-                IPlayer player1 = new Thundarr("Crazy Ivan");
-                //IPlayer player1 = new HumanPlayer("Human1");
-                IPlayer player2 = new DesdemonaPlayer(1);//GB
 
-                                
-                new Board(player1 , player2, 2, false);
-             }
+                IPlayer player1 = new Thundarr("sdkjha");
+                // IPlayer player1 = new HumanPlayer("Human1");
+                IPlayer player2 = new DesdemonaPlayer(1);// GB
+
+                new Board(player1, player2, 2, false);
+            }
         });
     }
 }
