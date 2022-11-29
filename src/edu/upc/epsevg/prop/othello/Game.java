@@ -24,7 +24,7 @@ public class Game {
             @Override
             public void run() {
 
-                IPlayer player1 = new Thundarr("sdkjha");
+                IPlayer player1 = new Thundarr("Thundarr");
                 // IPlayer player1 = new HumanPlayer("Human1");
                 IPlayer player2 = new DesdemonaPlayer(1);// GB
 
