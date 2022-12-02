@@ -54,9 +54,8 @@ public class Thundarr implements IPlayer, IAuto {
             return new Move(null, 0L, 0, SearchType.RANDOM);
         } else {
             // TODO: implementar movimiento en funcion de heurisitica
-            Random rand = new Random();
-            int q = rand.nextInt(moves.size());
-            return new Move(moves.get(q), 0L, 0, SearchType.RANDOM);
+            Point mov = minimax(s, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, true).second;
+            return new Move(mov, 0L, 0, SearchType.MINIMAX);
         }
     }
 
@@ -69,12 +68,11 @@ public class Thundarr implements IPlayer, IAuto {
         return "Thundarr(" + name + ")";
     }
 
-    // Boolean turno indica si en min o es max
-    // 0 casella buida, 1 player 1, -1 player 2
-    public int heuristica(Point tirada, int player) {
+    public int heuristica(GameStatus s_copia) {
         int puntuacion_final = 0;
         int V[][] = new int[8][8];
-
+        int enemigo = 0;
+        int jugador = 0;
         // Matriz de puntuaciones
         V[0] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
         V[1] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
@@ -85,26 +83,43 @@ public class Thundarr implements IPlayer, IAuto {
         V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
         V[7] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
         // heuristica millor casella on posar fitxa
-        Point Max = moves.get(0);
-        for (int i = 0; i < moves.size(); i++) {
-            int a = moves.get(i).x;
-            int b = moves.get(i).y;
-            if (V[a][b] > V[Max.x][Max.y]) {
-                Max = moves.get(i);
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                CellType casilla = s.getPos(i, j);
+                if (casilla != CellType.EMPTY) {
+                    if (casilla == CellType.PLAYER1) {
+                        jugador += V[i][j];
+                    } else {
+                        enemigo += V[i][j];
+                    }
+                }
             }
         }
-        return V[Max.x][Max.y];
+        // Recorremos tablero y comparamos
+
+        /*
+         * Point Max = moves.get(0);
+         * for (int i = 0; i < moves.size(); i++) {
+         * int a = moves.get(i).x;
+         * int b = moves.get(i).y;
+         * if (V[a][b] > V[Max.x][Max.y]) {
+         * Max = moves.get(i);
+         * }
+         * }
+         * return V[Max.x][Max.y];
+         */
 
     }
 
+    // Boolean turno indica si en min o es max
+    // 0 casella buida, 1 player 1, -1 player 2
     // True max, false min
-    public int minimax(GameStatus s_copia, int color, int profunditat, int alpha, int beta, boolean turno) {
-        int color_oponent = color;
+    public Point minimax(GameStatus s_copia, int profunditat, int alpha, int beta, boolean turno) {
         int valor;
         // Si la profundidad ya ha llegado a su limite no habra mas movimientos
         // posibles, devolvemos la heurisica del tablero.
         if (profunditat == 0 || s_copia.checkGameOver() == true) {
-            return heuristica(s_copia, color);
+            return heuristica(s_copia);
         }
         // Inicializamos variables en funcion si es min o max
         if (turno) { // Max
@@ -119,48 +134,48 @@ public class Thundarr implements IPlayer, IAuto {
         // Para cada tirada que se pueda hacer
         ArrayList<Point> moves = s_copia.getMoves(); // Pillamos todos los movimientos posibles
 
-        for (int col = 0; col < s_copia.getMoves().size(); col++) {
+        // Tendremos que recorrer todos los movimientos posibles, añadiendo tirada
+        // othello en un estado auxiliar
+        for (int i = 0; i < moves.size(); i++) {
             // Copia del tablero
-            Tauler tauler_aux = new Tauler(tauler_copia);
-            // Si se puede realizar un movimiento en la columna que estamos posicionados
-            if (tauler_aux.movpossible(col)) {
-
-                if (turno) {
-                    // Realizamos el movimiento seleccionado con el color del jugador.
-                    tauler_aux.afegeix(col, color);
-
-                    if (tauler_aux.solucio(col, color)) {
-                        return GANADOR;
-                    }
-                    // Calculamos heuristica. Si esta es supererior al valor actual, substituimos
-                    // valor por esta.
-                    valor = Math.max(valor, minimax(tauler_aux, color, profunditat - 1, alpha, beta, false));
-
-                    // Poda alfa-beta
-                    if (beta <= valor) {
-                        return valor;
-                    }
-
-                    alpha = Math.max(valor, alpha);
-                } else { // min
-                    // Realizamos el movimiento con el color del oponente ya que estamos en la capa
-                    // Min
-                    tauler_aux.afegeix(col, color_oponent);
-
-                    if (tauler_aux.solucio(col, color_oponent)) {
-                        return PERDEDOR;
-                    }
-                    // Calculamos heuristica. Si esta es menor al valor actual substituimos por esta
-                    valor = Math.min(valor, minimax(tauler_aux, color, profunditat - 1, alpha, beta, true));
-
-                    // Realitzem la poda alpha-beta
-                    if (valor <= alpha) {
-                        return valor;
-                    }
-
-                    beta = Math.min(valor, beta);
+            GameStatus status_aux = new GameStatus(s_copia);
+            // MAX
+            if (turno) {
+                // Realizamos el movimiento seleccionado con el color del jugador.
+                status_aux.movePiece(moves.get(i));
+                // s.movePiece(point);
+                if (status_aux.isGameOver()) {
+                    return GANADOR;
                 }
+                // Calculamos heuristica. Si esta es supererior al valor actual, substituimos
+                // valor por esta.
+                valor = Math.max(valor, minimax(status_aux, profunditat - 1, alpha, beta, false));
+
+                // Poda alfa-beta
+                if (beta <= valor) {
+                    return valor;
+                }
+
+                alpha = Math.max(valor, alpha);
+            } else { // min
+                     // Realizamos el movimiento con el color del oponente ya que estamos en la capa
+                     // Min
+                status_aux.movePiece(moves.get(i));
+
+                if (status_aux.isGameOver()) {
+                    return PERDEDOR;
+                }
+                // Calculamos heuristica. Si esta es menor al valor actual substituimos por esta
+                valor = Math.min(valor, minimax(status_aux, profunditat - 1, alpha, beta, true));
+
+                // Realitzem la poda alpha-beta
+                if (valor <= alpha) {
+                    return valor;
+                }
+
+                beta = Math.min(valor, beta);
             }
+
         }
         // Devolvemos heuristica
         return valor;
