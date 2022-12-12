@@ -58,10 +58,14 @@ public class Thundarr implements IPlayer, IAuto {
         } else {
             // TODO: implementar movimiento en funcion de heurisitica
             for (int i = 0; i < moves.size(); i++) {
-                int valor = minimax(s, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+                GameStatus status_aux = new GameStatus(s);
+                // MAX
+                // Realizamos el movimiento seleccionado con el color del jugador.
+                status_aux.movePiece(moves.get(i));
+                int valor = minimax(status_aux, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
                 System.out.println("VALOR " + valor);
 
-                if (valormin < valor) {
+                if (valor > valormin) {
                     valormin = valor;
                     mov = moves.get(i);
                     System.out.println("MOVIMIENTO" + i);
@@ -117,7 +121,7 @@ public class Thundarr implements IPlayer, IAuto {
                 }
             }
         }
-        // System.out.println((jugador + misfichas) - (enemigo + susfichas));
+        System.out.println((jugador + misfichas) - (enemigo + susfichas));
         return (jugador + misfichas) - (enemigo + susfichas);
 
     }
