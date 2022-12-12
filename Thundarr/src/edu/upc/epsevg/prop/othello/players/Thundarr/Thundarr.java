@@ -20,6 +20,8 @@ public class Thundarr implements IPlayer, IAuto {
     private String name;
     private GameStatus s; // tauler i estat del joc
     public int tablero[][];
+    public int misfichas = 0;
+    public int susfichas = 0;
 
     // Variable que almacena la mejor puntuacion posible para el movimiento. (mas
     // infinito)
@@ -47,14 +49,26 @@ public class Thundarr implements IPlayer, IAuto {
      */
     @Override
     public Move move(GameStatus s) {
-
+        int valormin = Integer.MIN_VALUE;
+        Point mov = new Point();
         ArrayList<Point> moves = s.getMoves(); // Pillamos todos los movimientos posibles
         if (moves.isEmpty()) {
             // no podem moure, el moviment (de tipus Point) es passa null.
             return new Move(null, 0L, 0, SearchType.RANDOM);
         } else {
             // TODO: implementar movimiento en funcion de heurisitica
-            Point mov = minimax(s, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, true).second;
+            for (int i = 0; i < moves.size(); i++) {
+                int valor = minimax(s, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+                System.out.println("VALOR " + valor);
+
+                if (valormin < valor) {
+                    valormin = valor;
+                    mov = moves.get(i);
+                    System.out.println("MOVIMIENTO" + i);
+
+                }
+            }
+
             return new Move(mov, 0L, 0, SearchType.MINIMAX);
         }
     }
@@ -69,7 +83,9 @@ public class Thundarr implements IPlayer, IAuto {
     }
 
     public int heuristica(GameStatus s_copia) {
-        int puntuacion_final = 0;
+
+        // Numero de fichas
+
         int V[][] = new int[8][8];
         int enemigo = 0;
         int jugador = 0;
@@ -82,39 +98,34 @@ public class Thundarr implements IPlayer, IAuto {
         V[5] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
         V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
         V[7] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
+
+        // Inicializamos numero de fichas
+        misfichas = 0;
+        susfichas = 0;
         // heuristica millor casella on posar fitxa
         for (int i = 0; i < 8; i++) {
             for (int j = 0; j < 8; j++) {
-                CellType casilla = s.getPos(i, j);
+                CellType casilla = s_copia.getPos(i, j);
                 if (casilla != CellType.EMPTY) {
                     if (casilla == CellType.PLAYER1) {
                         jugador += V[i][j];
+                        misfichas++;
                     } else {
                         enemigo += V[i][j];
+                        susfichas++;
                     }
                 }
             }
         }
-        // Recorremos tablero y comparamos
-
-        /*
-         * Point Max = moves.get(0);
-         * for (int i = 0; i < moves.size(); i++) {
-         * int a = moves.get(i).x;
-         * int b = moves.get(i).y;
-         * if (V[a][b] > V[Max.x][Max.y]) {
-         * Max = moves.get(i);
-         * }
-         * }
-         * return V[Max.x][Max.y];
-         */
+        // System.out.println((jugador + misfichas) - (enemigo + susfichas));
+        return (jugador + misfichas) - (enemigo + susfichas);
 
     }
 
     // Boolean turno indica si en min o es max
     // 0 casella buida, 1 player 1, -1 player 2
     // True max, false min
-    public Point minimax(GameStatus s_copia, int profunditat, int alpha, int beta, boolean turno) {
+    public int minimax(GameStatus s_copia, int profunditat, int alpha, int beta, boolean turno) {
         int valor;
         // Si la profundidad ya ha llegado a su limite no habra mas movimientos
         // posibles, devolvemos la heurisica del tablero.
@@ -143,6 +154,7 @@ public class Thundarr implements IPlayer, IAuto {
             if (turno) {
                 // Realizamos el movimiento seleccionado con el color del jugador.
                 status_aux.movePiece(moves.get(i));
+                // Añadimos numero de fichas
                 // s.movePiece(point);
                 if (status_aux.isGameOver()) {
                     return GANADOR;
@@ -161,7 +173,6 @@ public class Thundarr implements IPlayer, IAuto {
                      // Realizamos el movimiento con el color del oponente ya que estamos en la capa
                      // Min
                 status_aux.movePiece(moves.get(i));
-
                 if (status_aux.isGameOver()) {
                     return PERDEDOR;
                 }
