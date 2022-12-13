@@ -62,7 +62,7 @@ public class Thundarr implements IPlayer, IAuto {
                 // MAX
                 // Realizamos el movimiento seleccionado con el color del jugador.
                 status_aux.movePiece(moves.get(i));
-                int valor = minimax(status_aux, 4, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
+                int valor = minimax(status_aux, 5, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
                 System.out.println("VALOR " + valor);
 
                 if (valor > valormin) {

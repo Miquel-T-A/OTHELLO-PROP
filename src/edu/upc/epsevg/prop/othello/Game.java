@@ -25,11 +25,11 @@ public class Game {
             public void run() {
 
                 IPlayer player1 = new Thundarr("Thundarr");
-                // IPlayer player1 = new HumanPlayer("Human1");
+                //IPlayer player1 = new HumanPlayer("Human1");
                 IPlayer player2 = new DesdemonaPlayer(1);// GB
 
-                //new Board(player1, player2, 2, false);
-                new Board(player2, player1, 2, false);
+                new Board(player1, player2, 2, false);
+                //new Board(player2, player1, 2, false);
 
             }
         });
