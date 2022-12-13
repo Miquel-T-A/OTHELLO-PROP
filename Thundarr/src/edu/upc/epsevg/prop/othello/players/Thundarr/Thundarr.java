@@ -18,21 +18,31 @@ import java.util.Random;
 public class Thundarr implements IPlayer, IAuto {
 
     private String name;
-    private GameStatus s; // tauler i estat del joc
-    public int tablero[][];
-    public int misfichas = 0;
-    public int susfichas = 0;
-
-    // Variable que almacena la mejor puntuacion posible para el movimiento. (mas
-    // infinito)
-    private static final int GANADOR = 999999;
-
-    // Variable que almacena la peor puntuacion posible para el movimiento. (menos
-    // infinito)
-    private static final int PERDEDOR = -999999;
+    private GameStatus s;
+    private CellType myType;
+    private CellType hisType;
+    private int[][] stabilityTable = {
+            { 4, -3, 2, 2, 2, 2, -3, 4, },
+            { -3, -4, -1, -1, -1, -1, -4, -3, },
+            { 2, -1, 1, 0, 0, 1, -1, 2, },
+            { 2, -1, 0, 1, 1, 0, -1, 2, },
+            { 2, -1, 0, 1, 1, 0, -1, 2, },
+            { 2, -1, 1, 0, 0, 1, -1, 2, },
+            { -3, -4, -1, -1, -1, -1, -4, -3, },
+            { 4, -3, 2, 2, 2, 2, -3, 4 }
+    };
 
     public Thundarr(String name) {
         this.name = name;
+    }
+
+    /**
+     * Ens avisa que hem de parar la cerca en curs perquè s'ha exhaurit el temps
+     * de joc.
+     */
+    @Override
+    public String getName() {
+        return "Hellowda(" + name + ")";
     }
 
     @Override
@@ -49,152 +59,188 @@ public class Thundarr implements IPlayer, IAuto {
      */
     @Override
     public Move move(GameStatus s) {
-        int valormin = Integer.MIN_VALUE;
-        Point mov = new Point();
-        ArrayList<Point> moves = s.getMoves(); // Pillamos todos los movimientos posibles
-        if (moves.isEmpty()) {
-            // no podem moure, el moviment (de tipus Point) es passa null.
-            return new Move(null, 0L, 0, SearchType.RANDOM);
-        } else {
-            // TODO: implementar movimiento en funcion de heurisitica
-            for (int i = 0; i < moves.size(); i++) {
-                GameStatus status_aux = new GameStatus(s);
-                // MAX
-                // Realizamos el movimiento seleccionado con el color del jugador.
-                status_aux.movePiece(moves.get(i));
-                int valor = minimax(status_aux, 5, Integer.MIN_VALUE, Integer.MAX_VALUE, true);
-                System.out.println("VALOR " + valor);
 
-                if (valor > valormin) {
-                    valormin = valor;
-                    mov = moves.get(i);
-                    System.out.println("MOVIMIENTO" + i);
-
-                }
-            }
-
-            return new Move(mov, 0L, 0, SearchType.MINIMAX);
-        }
+        myType = s.getCurrentPlayer();
+        hisType = CellType.opposite(myType);
+        Point mov = triaPosició(s, 4);
+        return new Move(mov, 0L, 0, SearchType.RANDOM);
+        // return move (posicio, 0, 0, MINIMAX)
     }
 
-    /**
-     * Ens avisa que hem de parar la cerca en curs perquè s'ha exhaurit el temps
-     * de joc.
-     */
-    @Override
-    public String getName() {
-        return "Thundarr(" + name + ")";
-    }
+    Point triaPosició(GameStatus s, int depth) {
 
-    public int heuristica(GameStatus s_copia) {
-
-        // Numero de fichas
-
-        int V[][] = new int[8][8];
-        int enemigo = 0;
-        int jugador = 0;
-        // Matriz de puntuaciones
-        V[0] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
-        V[1] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
-        V[2] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
-        V[3] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
-        V[4] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
-        V[5] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
-        V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
-        V[7] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
-
-        // Inicializamos numero de fichas
-        misfichas = 0;
-        susfichas = 0;
-        // heuristica millor casella on posar fitxa
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                CellType casilla = s_copia.getPos(i, j);
-                if (casilla != CellType.EMPTY) {
-                    if (casilla == CellType.PLAYER1) {
-                        jugador += V[i][j];
-                        misfichas++;
-                    } else {
-                        enemigo += V[i][j];
-                        susfichas++;
-                    }
-                }
-            }
-        }
-        System.out.println((jugador + misfichas) - (enemigo + susfichas));
-        return (jugador + misfichas) - (enemigo + susfichas);
-
-    }
-
-    // Boolean turno indica si en min o es max
-    // 0 casella buida, 1 player 1, -1 player 2
-    // True max, false min
-    public int minimax(GameStatus s_copia, int profunditat, int alpha, int beta, boolean turno) {
-        int valor;
-        // Si la profundidad ya ha llegado a su limite no habra mas movimientos
-        // posibles, devolvemos la heurisica del tablero.
-        if (profunditat == 0 || s_copia.checkGameOver() == true) {
-            return heuristica(s_copia);
-        }
-        // Inicializamos variables en funcion si es min o max
-        if (turno) { // Max
-            // Establecemos el valor inicial como al minimo asi cualquier valor sera
-            // superior.
-            valor = Integer.MIN_VALUE;
-        } else { // Min
-            // Establecemos el valor inicial como al maximo asi cualquier valor sera
-            // inferior.
-            valor = Integer.MAX_VALUE;
-        }
-        // Para cada tirada que se pueda hacer
-        ArrayList<Point> moves = s_copia.getMoves(); // Pillamos todos los movimientos posibles
-
-        // Tendremos que recorrer todos los movimientos posibles, añadiendo tirada
-        // othello en un estado auxiliar
+        int maxEval = Integer.MIN_VALUE;
+        Point bestMove = new Point();
+        ArrayList<Point> moves = s.getMoves();
         for (int i = 0; i < moves.size(); i++) {
-            // Copia del tablero
-            GameStatus status_aux = new GameStatus(s_copia);
-            // MAX
-            if (turno) {
-                // Realizamos el movimiento seleccionado con el color del jugador.
-                status_aux.movePiece(moves.get(i));
-                // Añadimos numero de fichas
-                // s.movePiece(point);
-                if (status_aux.isGameOver()) {
-                    return GANADOR;
-                }
-                // Calculamos heuristica. Si esta es supererior al valor actual, substituimos
-                // valor por esta.
-                valor = Math.max(valor, minimax(status_aux, profunditat - 1, alpha, beta, false));
+            GameStatus fill = new GameStatus(s);
+            fill.movePiece(moves.get(i));
+            int eval = minValor(fill, depth - 1, Integer.MAX_VALUE, Integer.MIN_VALUE);
+            if (maxEval < eval) {
+                maxEval = eval;
+                bestMove = moves.get(i);
+            }
+        }
+        return bestMove;
+    }
 
-                // Poda alfa-beta
-                if (beta <= valor) {
-                    return valor;
-                }
+    int minValor(GameStatus s, int depth, int beta, int alpha) {
+        // System.out.println(s.getCurrentPlayer());
+        if (s.checkGameOver()) { // ha guanyat algu
+            if (myType == s.GetWinner()) // Guanyem nosaltres
+                return 1000000;
+            else // Guanya el contrincant
+                return -1000000;
+        } else if (s.isGameOver() || depth == 0) { // no hi ha moviments possibles o profunditat es 0
+            return heuristica(s, s.getCurrentPlayer());
+        }
+        int minEval = Integer.MAX_VALUE;
+        ArrayList<Point> moves = s.getMoves();
+        for (int i = 0; i < moves.size(); i++) {
+            GameStatus fill = new GameStatus(s);
+            // System.out.println(fill.getCurrentPlayer());
+            fill.movePiece(moves.get(i));
 
-                alpha = Math.max(valor, alpha);
-            } else { // min
-                     // Realizamos el movimiento con el color del oponente ya que estamos en la capa
-                     // Min
-                status_aux.movePiece(moves.get(i));
-                if (status_aux.isGameOver()) {
-                    return PERDEDOR;
-                }
-                // Calculamos heuristica. Si esta es menor al valor actual substituimos por esta
-                valor = Math.min(valor, minimax(status_aux, profunditat - 1, alpha, beta, true));
-
-                // Realitzem la poda alpha-beta
-                if (valor <= alpha) {
-                    return valor;
-                }
-
-                beta = Math.min(valor, beta);
+            minEval = Math.min(minEval, maxValor(fill, depth - 1, beta, alpha));
+            beta = Math.min(beta, minEval);
+            if (alpha >= beta) {
+                break;
             }
 
         }
-        // Devolvemos heuristica
-        return valor;
-
+        return minEval;
     }
+
+    int maxValor(GameStatus s, int depth, int beta, int alpha) {
+        // System.out.println(s.getCurrentPlayer());
+        if (s.checkGameOver()) { // ha guanyat algu
+            if (myType == s.GetWinner()) // Guanyem nosaltres
+                return 1000000;
+            else // Guanya el contrincant
+                return -1000000;
+        } else if (s.isGameOver() || depth == 0) { // no hi ha moviments possibles o profunditat es 0
+            return heuristica(s, s.getCurrentPlayer());
+        }
+        int maxEval = Integer.MIN_VALUE + 1;
+        ArrayList<Point> moves = s.getMoves();
+        for (int i = 0; i < moves.size(); i++) {
+            GameStatus fill = new GameStatus(s);
+            fill.movePiece(moves.get(i));
+            maxEval = Math.max(maxEval, minValor(fill, depth - 1, beta, alpha));
+            alpha = Math.max(alpha, maxEval);
+            if (alpha >= beta) {
+                break;
+            }
+        }
+
+        return maxEval;
+    }
+
+    public int heuristica(GameStatus s, CellType player) {
+        int h = 0;
+        CellType contrari = CellType.opposite(player);
+        // System.out.println(player +" "+ contrari);
+        // aqui calculem, corners moviments i paritat (corners * 100,moviments * 5,
+        // paritat * 25, 25 * stabilitat)
+        // Res is 100 * Res_corners + 5 * Res_mobility + 25 * Res_coinParity + 25 *
+        // Res_stability.
+        h += heur(s, player);
+        h -= heur(s, contrari);
+        int stability = 0;
+        for (int i = 0; i < stabilityTable.length; i++) {
+            for (int j = 0; j < stabilityTable.length; j++) {
+                if (s.getPos(i, j) == player) {
+                    stability += stabilityTable[i][j];
+                }
+                if (s.getPos(i, j) == contrari) {
+                    stability -= stabilityTable[i][j];
+                }
+            }
+        }
+        h += stability * 5;
+        // System.out.println(h+" " +player);
+        return h;
+    }
+
+    public int heur(GameStatus s, CellType player) {
+        // mirar corners
+        // mirar quantes fitxer te cadascu
+        // mirar posibles moviments
+        // Coin Parity Heuristic Value =
+        // 100 * (Max Player Coins - Min Player Coins ) / (Max Player Coins + Min Player
+        // Coins)
+        int heur = 0;
+
+        int paritat = s.getScore(player);
+        heur += paritat * 5;
+
+        int moviments = s.getMoves().size();
+        heur += moviments;
+
+        int corners = 0;
+        if (s.getPos(0, 0) == player) {
+            corners += 5;
+        }
+        if (s.getPos(s.getSize() - 1, s.getSize() - 1) == player) {
+            corners += 5;
+        }
+        if (s.getPos(0, s.getSize() - 1) == player) {
+            corners += 5;
+        }
+        if (s.getPos(s.getSize() - 1, 0) == player) {
+            corners += 5;
+        }
+        heur += corners * 1000;
+
+        return heur;
+    }
+
+    /*
+     * public int minimax(int depth, int nodeIndex, boolean maximizingPlayer,
+     * GameStatus s, int alpha, int beta)
+     * {
+     * // Si se llega al fondo del árbol o si ya no hay movimientos válidos, se
+     * devuelve el valor de la posición actual
+     * if (depth == 0 || s.checkGameOver())
+     * return values[nodeIndex];
+     * 
+     * if (maximizingPlayer)
+     * {
+     * int best = -INFINITY;
+     * 
+     * // Recorremos todas las posibles jugadas válidas
+     * for (int i = 0; i < possibleMoves(); i++)
+     * {
+     * int value = minimax(depth - 1, newNodeIndex, false, values, alpha, beta);
+     * best = max(best, value);
+     * alpha = max(alpha, best);
+     * 
+     * // Corte alpha-beta
+     * if (beta <= alpha)
+     * break;
+     * }
+     * 
+     * return best;
+     * }
+     * else
+     * {
+     * int best = INFINITY;
+     * 
+     * // Recorremos todas las posibles jugadas válidas
+     * for (int i = 0; i < possibleMoves(); i++)
+     * {
+     * int value = minimax(depth - 1, newNodeIndex, true, values, alpha, beta);
+     * best = min(best, value);
+     * beta = min(beta, best);
+     * 
+     * // Corte alpha-beta
+     * if (beta <= alpha)
+     * break;
+     * }
+     * 
+     * return best;
+     * }
+     * }
+     */
 
 }
