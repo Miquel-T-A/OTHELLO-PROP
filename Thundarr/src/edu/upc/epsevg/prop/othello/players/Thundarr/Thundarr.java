@@ -27,21 +27,28 @@ public class Thundarr implements IPlayer, IAuto {
     private static int BOARD_SIZE = 8;
     private static Random RANDOM = new Random();
 
-    private int[][] stabilityTable = {
-            { 4, -3, 2, 2, 2, 2, -3, 4, },
-            { -3, -4, -1, -1, -1, -1, -4, -3, },
-            { 2, -1, 1, 0, 0, 1, -1, 2, },
-            { 2, -1, 0, 1, 1, 0, -1, 2, },
-            { 2, -1, 0, 1, 1, 0, -1, 2, },
-            { 2, -1, 1, 0, 0, 1, -1, 2, },
-            { -3, -4, -1, -1, -1, -1, -4, -3, },
-            { 4, -3, 2, 2, 2, 2, -3, 4 }
-    };
+    private int V[][];
 
     public Thundarr(String name) {
+
+        V = new int[8][8];
+
+        // Matriz de puntuaciones
+        V[0] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
+        V[1] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
+        V[2] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
+        V[3] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
+        V[4] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
+        V[5] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
+        V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
+        V[7] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
+
         this.name = name;
+        zobristTable = new HashMap<>();
+
         // Initialize the hash values 2D array
         zobristKeys = new long[BOARD_SIZE][BOARD_SIZE];
+
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // Generate a random long value for each square on the board
@@ -180,13 +187,13 @@ public class Thundarr implements IPlayer, IAuto {
         h += heur(s, player);
         h -= heur(s, contrari);
         int stability = 0;
-        for (int i = 0; i < stabilityTable.length; i++) {
-            for (int j = 0; j < stabilityTable.length; j++) {
+        for (int i = 0; i < V.length; i++) {
+            for (int j = 0; j < V.length; j++) {
                 if (s.getPos(i, j) == player) {
-                    stability += stabilityTable[i][j];
+                    stability += V[i][j];
                 }
                 if (s.getPos(i, j) == contrari) {
-                    stability -= stabilityTable[i][j];
+                    stability -= V[i][j];
                 }
             }
         }
