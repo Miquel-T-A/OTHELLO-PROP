@@ -110,10 +110,10 @@ public class Thundarr implements IPlayer, IAuto {
     int minValor(GameStatus s, int depth, int beta, int alpha) {
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
-            // If we have already evaluated this board position, return the stored value
+            // Si ja hem evaluat aquesta posició del tauler, retornem el valor
+            System.out.println("ENTRAMOS EN ZOBRIST");
             return zobristTable.get(hash);
         }
-        // System.out.println(s.getCurrentPlayer());
         if (s.checkGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
@@ -126,30 +126,32 @@ public class Thundarr implements IPlayer, IAuto {
         }
         int minEval = Integer.MAX_VALUE;
         ArrayList<Point> moves = s.getMoves();
-        for (int i = 0; i < moves.size(); i++) {
-            GameStatus fill = new GameStatus(s);
-            // System.out.println(fill.getCurrentPlayer());
-            fill.movePiece(moves.get(i));
 
-            minEval = Math.min(minEval, maxValor(fill, depth - 1, beta, alpha));
+        // Iterem sobre tots el moviments nous posibles
+        for (int i = 0; i < moves.size(); i++) {
+            GameStatus s_aux = new GameStatus(s);
+            // Movem la peça en el status auxiliar
+            s_aux.movePiece(moves.get(i));
+
+            minEval = Math.min(minEval, maxValor(s_aux, depth - 1, beta, alpha));
             beta = Math.min(beta, minEval);
             if (alpha >= beta) {
                 break;
             }
 
         }
-        zobristTable.put(hash, minEval); // Store the value in the Zobrist table
-
+        zobristTable.put(hash, minEval); // Guardem el valor en la zobrist table
         return minEval;
     }
 
     int maxValor(GameStatus s, int depth, int beta, int alpha) {
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
-            // If we have already evaluated this board position, return the stored value
+            // Si ja hem evaluat aquesta posició del tauler, retornem el valor
+            System.out.println("ENTRAMOS EN ZOBRIST");
             return zobristTable.get(hash);
         }
-        if (s.checkGameOver()) { // ha guanyat algu
+        if (s.checkGameOver()) { // Ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
@@ -162,6 +164,8 @@ public class Thundarr implements IPlayer, IAuto {
 
         int maxEval = Integer.MIN_VALUE + 1;
         ArrayList<Point> moves = s.getMoves();
+
+        // Iterem sobre tots el moviments nous posibles
         for (int i = 0; i < moves.size(); i++) {
             GameStatus fill = new GameStatus(s);
             fill.movePiece(moves.get(i));
@@ -178,8 +182,10 @@ public class Thundarr implements IPlayer, IAuto {
 
     public int heuristica(GameStatus s, CellType player) {
         int h = 0;
+        int puntuacio = 0;
+        int puntuacio_contrari = 0;
+
         CellType contrari = CellType.opposite(player);
-        // System.out.println(player +" "+ contrari);
         // aqui calculem, corners moviments i paritat (corners * 100,moviments * 5,
         // paritat * 25, 25 * stabilitat)
         // Res is 100 * Res_corners + 5 * Res_mobility + 25 * Res_coinParity + 25 *
