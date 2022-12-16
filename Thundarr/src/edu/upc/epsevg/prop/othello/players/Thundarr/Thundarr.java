@@ -8,6 +8,7 @@ import edu.upc.epsevg.prop.othello.Move;
 import edu.upc.epsevg.prop.othello.SearchType;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -21,6 +22,11 @@ public class Thundarr implements IPlayer, IAuto {
     private GameStatus s;
     private CellType myType;
     private CellType hisType;
+    private static HashMap<Long, Integer> zobristTable;
+    private static long[][] zobristKeys;
+    private static int BOARD_SIZE = 8;
+    private static Random RANDOM = new Random();
+
     private int[][] stabilityTable = {
             { 4, -3, 2, 2, 2, 2, -3, 4, },
             { -3, -4, -1, -1, -1, -1, -4, -3, },
@@ -34,6 +40,19 @@ public class Thundarr implements IPlayer, IAuto {
 
     public Thundarr(String name) {
         this.name = name;
+        // Initialize the hash values 2D array
+        zobristKeys = new long[BOARD_SIZE][BOARD_SIZE];
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                // Generate a random long value for each square on the board
+                zobristKeys[i][j] = RANDOM.nextLong();
+            }
+        }
+    }
+
+    @Override
+    public String getName() {
+        return "Thundarr";
     }
 
     /**
@@ -41,13 +60,8 @@ public class Thundarr implements IPlayer, IAuto {
      * de joc.
      */
     @Override
-    public String getName() {
-        return "Hellowda(" + name + ")";
-    }
-
-    @Override
     public void timeout() {
-        // Nothing to do! I'm so fast, I never timeout 8-)
+        // No fem res
     }
 
     /**
@@ -62,16 +76,18 @@ public class Thundarr implements IPlayer, IAuto {
 
         myType = s.getCurrentPlayer();
         hisType = CellType.opposite(myType);
-        Point mov = triaPosició(s, 4);
+        Point mov = triaPosicio(s, 4);
         return new Move(mov, 0L, 0, SearchType.RANDOM);
         // return move (posicio, 0, 0, MINIMAX)
     }
 
-    Point triaPosició(GameStatus s, int depth) {
+    Point triaPosicio(GameStatus s, int depth) {
 
         int maxEval = Integer.MIN_VALUE;
         Point bestMove = new Point();
         ArrayList<Point> moves = s.getMoves();
+
+        // Perform the iterative deepening search
         for (int i = 0; i < moves.size(); i++) {
             GameStatus fill = new GameStatus(s);
             fill.movePiece(moves.get(i));
@@ -85,14 +101,21 @@ public class Thundarr implements IPlayer, IAuto {
     }
 
     int minValor(GameStatus s, int depth, int beta, int alpha) {
+        long hash = getBoardHash(s);
+        if (zobristTable.containsKey(hash)) {
+            // If we have already evaluated this board position, return the stored value
+            return zobristTable.get(hash);
+        }
         // System.out.println(s.getCurrentPlayer());
         if (s.checkGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
-                return 1000000;
+                return 9999999;
             else // Guanya el contrincant
-                return -1000000;
+                return -9999999;
         } else if (s.isGameOver() || depth == 0) { // no hi ha moviments possibles o profunditat es 0
-            return heuristica(s, s.getCurrentPlayer());
+            int valor = heuristica(s, s.getCurrentPlayer());
+            zobristTable.put(hash, valor);
+            return valor;
         }
         int minEval = Integer.MAX_VALUE;
         ArrayList<Point> moves = s.getMoves();
@@ -108,19 +131,28 @@ public class Thundarr implements IPlayer, IAuto {
             }
 
         }
+        zobristTable.put(hash, minEval); // Store the value in the Zobrist table
+
         return minEval;
     }
 
     int maxValor(GameStatus s, int depth, int beta, int alpha) {
-        // System.out.println(s.getCurrentPlayer());
+        long hash = getBoardHash(s);
+        if (zobristTable.containsKey(hash)) {
+            // If we have already evaluated this board position, return the stored value
+            return zobristTable.get(hash);
+        }
         if (s.checkGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
-                return 1000000;
+                return 9999999;
             else // Guanya el contrincant
-                return -1000000;
+                return -9999999;
         } else if (s.isGameOver() || depth == 0) { // no hi ha moviments possibles o profunditat es 0
-            return heuristica(s, s.getCurrentPlayer());
+            int valor = heuristica(s, s.getCurrentPlayer());
+            zobristTable.put(hash, valor);
+            return valor;
         }
+
         int maxEval = Integer.MIN_VALUE + 1;
         ArrayList<Point> moves = s.getMoves();
         for (int i = 0; i < moves.size(); i++) {
@@ -132,6 +164,7 @@ public class Thundarr implements IPlayer, IAuto {
                 break;
             }
         }
+        zobristTable.put(hash, maxEval); // Store the value in the Zobrist table
 
         return maxEval;
     }
@@ -195,52 +228,17 @@ public class Thundarr implements IPlayer, IAuto {
         return heur;
     }
 
-    /*
-     * public int minimax(int depth, int nodeIndex, boolean maximizingPlayer,
-     * GameStatus s, int alpha, int beta)
-     * {
-     * // Si se llega al fondo del árbol o si ya no hay movimientos válidos, se
-     * devuelve el valor de la posición actual
-     * if (depth == 0 || s.checkGameOver())
-     * return values[nodeIndex];
-     * 
-     * if (maximizingPlayer)
-     * {
-     * int best = -INFINITY;
-     * 
-     * // Recorremos todas las posibles jugadas válidas
-     * for (int i = 0; i < possibleMoves(); i++)
-     * {
-     * int value = minimax(depth - 1, newNodeIndex, false, values, alpha, beta);
-     * best = max(best, value);
-     * alpha = max(alpha, best);
-     * 
-     * // Corte alpha-beta
-     * if (beta <= alpha)
-     * break;
-     * }
-     * 
-     * return best;
-     * }
-     * else
-     * {
-     * int best = INFINITY;
-     * 
-     * // Recorremos todas las posibles jugadas válidas
-     * for (int i = 0; i < possibleMoves(); i++)
-     * {
-     * int value = minimax(depth - 1, newNodeIndex, true, values, alpha, beta);
-     * best = min(best, value);
-     * beta = min(beta, best);
-     * 
-     * // Corte alpha-beta
-     * if (beta <= alpha)
-     * break;
-     * }
-     * 
-     * return best;
-     * }
-     * }
-     */
-
+    public long getBoardHash(GameStatus s) {
+        long hash = 0;
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                // If the square is occupied by a piece, XOR its hash value into the overall
+                // hash
+                if (s.getPos(i, j) != CellType.EMPTY) {
+                    hash ^= zobristKeys[i][j];
+                }
+            }
+        }
+        return hash;
+    }
 }
