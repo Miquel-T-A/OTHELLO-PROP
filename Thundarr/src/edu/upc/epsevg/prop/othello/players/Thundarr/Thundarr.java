@@ -26,7 +26,6 @@ public class Thundarr implements IPlayer, IAuto {
     private static long[][] zobristKeys;
     private static int BOARD_SIZE = 8;
     private static Random RANDOM = new Random();
-
     private int V[][];
 
     public Thundarr(String name) {
@@ -46,12 +45,12 @@ public class Thundarr implements IPlayer, IAuto {
         this.name = name;
         zobristTable = new HashMap<>();
 
-        // Initialize the hash values 2D array
+        // Inicialitzem la taula de hash
         zobristKeys = new long[BOARD_SIZE][BOARD_SIZE];
 
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-                // Generate a random long value for each square on the board
+                // Generem un valor aleatori per cada casella del tauler
                 zobristKeys[i][j] = RANDOM.nextLong();
             }
         }
@@ -102,6 +101,7 @@ public class Thundarr implements IPlayer, IAuto {
             if (maxEval < eval) {
                 maxEval = eval;
                 bestMove = moves.get(i);
+                System.out.println("MOVIMIENTO: " + i);
             }
         }
         return bestMove;
@@ -181,71 +181,67 @@ public class Thundarr implements IPlayer, IAuto {
     }
 
     public int heuristica(GameStatus s, CellType player) {
-        int h = 0;
         int puntuacio = 0;
-        int puntuacio_contrari = 0;
-
         CellType contrari = CellType.opposite(player);
-        // aqui calculem, corners moviments i paritat (corners * 100,moviments * 5,
-        // paritat * 25, 25 * stabilitat)
-        // Res is 100 * Res_corners + 5 * Res_mobility + 25 * Res_coinParity + 25 *
-        // Res_stability.
-        h += heur(s, player);
-        h -= heur(s, contrari);
+
         int stability = 0;
-        for (int i = 0; i < V.length; i++) {
-            for (int j = 0; j < V.length; j++) {
+        // Heuristica 1: Contar el numero de peces del tauler
+        // Heuristica 2: Contar el numero de peces estables
+        // (es a dir, que no poden ser girades per l'oponent)
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
                 if (s.getPos(i, j) == player) {
-                    stability += V[i][j];
+                    puntuacio += V[i][j];
+                    if (isEstable(s, i, j, player)) {
+                        stability++;
+                    }
                 }
                 if (s.getPos(i, j) == contrari) {
-                    stability -= V[i][j];
+                    puntuacio -= V[i][j];
+                    if (isEstable(s, i, j, player)) {
+                        stability--;
+                    }
                 }
             }
         }
-        h += stability * 5;
-        // System.out.println(h+" " +player);
-        return h;
+
+        return puntuacio + stability;
     }
 
-    public int heur(GameStatus s, CellType player) {
-        // mirar corners
-        // mirar quantes fitxer te cadascu
-        // mirar posibles moviments
-        // Coin Parity Heuristic Value =
-        // 100 * (Max Player Coins - Min Player Coins ) / (Max Player Coins + Min Player
-        // Coins)
-        int heur = 0;
+    // Funcion que comprueba si una casilla es estable
+    public boolean isEstable(GameStatus s, int row, int col, CellType player) {
+        // check if the piece is surrounded on all sides
+        return isEnvoltat(s, row, col, player, -1, 0) &&
+                isEnvoltat(s, row, col, player, 1, 0) &&
+                isEnvoltat(s, row, col, player, 0, -1) &&
+                isEnvoltat(s, row, col, player, 0, 1);
+    }
 
-        int paritat = s.getScore(player);
-        heur += paritat * 5;
-
-        int moviments = s.getMoves().size();
-        heur += moviments;
-
-        int corners = 0;
-        if (s.getPos(0, 0) == player) {
-            corners += 5;
+    private boolean isEnvoltat(GameStatus s, int row, int col, CellType player, int rowDelta, int colDelta) {
+        // check if the piece is surrounded in the given direction
+        int newRow = row + rowDelta;
+        int newCol = col + colDelta;
+        if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
+            // out of bounds, not surrounded
+            return false;
         }
-        if (s.getPos(s.getSize() - 1, s.getSize() - 1) == player) {
-            corners += 5;
+        if (s.getPos(newRow, newCol) == player) {
+            // same color, not surrounded
+            return false;
         }
-        if (s.getPos(0, s.getSize() - 1) == player) {
-            corners += 5;
+        if (s.getPos(newRow, newCol) == CellType.EMPTY) {
+            // empty space, not surrounded
+            return false;
         }
-        if (s.getPos(s.getSize() - 1, 0) == player) {
-            corners += 5;
-        }
-        heur += corners * 1000;
-
-        return heur;
+        // Comprovem el seguent espai en la direccio donada
+        return isEnvoltat(s, newRow, newCol, player, rowDelta, colDelta);
     }
 
     public long getBoardHash(GameStatus s) {
         long hash = 0;
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-                // If the square is occupied by a piece, XOR its hash value into the overall
+                // si el cuadrat esta ocupat per una peça, XOR el seu valor hash al hash total
                 // hash
                 if (s.getPos(i, j) != CellType.EMPTY) {
                     hash ^= zobristKeys[i][j];
