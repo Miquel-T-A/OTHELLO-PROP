@@ -97,7 +97,7 @@ public class Thundarr implements IPlayer, IAuto {
         for (int i = 0; i < moves.size(); i++) {
             GameStatus fill = new GameStatus(s);
             fill.movePiece(moves.get(i));
-            int eval = minValor(fill, depth - 1, Integer.MAX_VALUE, Integer.MIN_VALUE);
+            int eval = minMinimax(fill, depth - 1, Integer.MAX_VALUE, Integer.MIN_VALUE);
             if (maxEval < eval) {
                 maxEval = eval;
                 bestMove = moves.get(i);
@@ -107,7 +107,7 @@ public class Thundarr implements IPlayer, IAuto {
         return bestMove;
     }
 
-    int minValor(GameStatus s, int depth, int beta, int alpha) {
+    int minMinimax(GameStatus s, int depth, int beta, int alpha) {
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
             // Si ja hem evaluat aquesta posició del tauler, retornem el valor
@@ -133,7 +133,7 @@ public class Thundarr implements IPlayer, IAuto {
             // Movem la peça en el status auxiliar
             s_aux.movePiece(moves.get(i));
 
-            minEval = Math.min(minEval, maxValor(s_aux, depth - 1, beta, alpha));
+            minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
             beta = Math.min(beta, minEval);
             if (alpha >= beta) {
                 break;
@@ -144,7 +144,7 @@ public class Thundarr implements IPlayer, IAuto {
         return minEval;
     }
 
-    int maxValor(GameStatus s, int depth, int beta, int alpha) {
+    int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
             // Si ja hem evaluat aquesta posició del tauler, retornem el valor
@@ -169,13 +169,13 @@ public class Thundarr implements IPlayer, IAuto {
         for (int i = 0; i < moves.size(); i++) {
             GameStatus fill = new GameStatus(s);
             fill.movePiece(moves.get(i));
-            maxEval = Math.max(maxEval, minValor(fill, depth - 1, beta, alpha));
+            maxEval = Math.max(maxEval, minMinimax(fill, depth - 1, beta, alpha));
             alpha = Math.max(alpha, maxEval);
             if (alpha >= beta) {
                 break;
             }
         }
-        zobristTable.put(hash, maxEval); // Store the value in the Zobrist table
+        zobristTable.put(hash, maxEval); // Guardem el valor en la zobrist table
 
         return maxEval;
     }
