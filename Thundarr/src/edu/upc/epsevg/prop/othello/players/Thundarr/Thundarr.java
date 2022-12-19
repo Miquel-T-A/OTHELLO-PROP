@@ -82,7 +82,7 @@ public class Thundarr implements IPlayer, IAuto {
 
         myType = s.getCurrentPlayer();
         hisType = CellType.opposite(myType);
-        Point mov = triaPosicio(s, 4);
+        Point mov = triaPosicio(s, 6);
         return new Move(mov, 0L, 0, SearchType.RANDOM);
         // return move (posicio, 0, 0, MINIMAX)
     }
@@ -101,7 +101,7 @@ public class Thundarr implements IPlayer, IAuto {
             if (maxEval < eval) {
                 maxEval = eval;
                 bestMove = moves.get(i);
-                System.out.println("MOVIMIENTO: " + i);
+                System.out.println("MOVIMIENTO: " + i + "de" + moves.size() + " " + bestMove + " " + eval);
             }
         }
         return bestMove;
@@ -111,7 +111,7 @@ public class Thundarr implements IPlayer, IAuto {
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
             // Si ja hem evaluat aquesta posició del tauler, retornem el valor
-            System.out.println("ENTRAMOS EN ZOBRIST");
+            // System.out.println("ENTRAMOS EN ZOBRIST");
             return zobristTable.get(hash);
         }
         if (s.checkGameOver()) { // ha guanyat algu
@@ -148,7 +148,7 @@ public class Thundarr implements IPlayer, IAuto {
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
             // Si ja hem evaluat aquesta posició del tauler, retornem el valor
-            System.out.println("ENTRAMOS EN ZOBRIST");
+            // System.out.println("ENTRAMOS EN ZOBRIST");
             return zobristTable.get(hash);
         }
         if (s.checkGameOver()) { // Ha guanyat algu
@@ -182,27 +182,56 @@ public class Thundarr implements IPlayer, IAuto {
 
     public int heuristica(GameStatus s, CellType player) {
         int puntuacio = 0;
+        int stability = 0;
+
+        int blackMoves = 0;
+        int whiteMoves = 0;
+
         CellType contrari = CellType.opposite(player);
 
-        int stability = 0;
         // Heuristica 1: Contar el numero de peces del tauler
         // Heuristica 2: Contar el numero de peces estables
+        // Heuristica 3: contar el numero de moviments possibles (movilitat)
         // (es a dir, que no poden ser girades per l'oponent)
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
+
+                // 3
+                if (s.canMove(new Point(i, j), player)) {
+                    blackMoves++;
+                }
+                if (s.canMove(new Point(i, j), contrari)) {
+                    whiteMoves++;
+                }
+                // 2
+                if (isEstable(s, i, j, player)) {
+                    stability++;
+                }
+                if (isEstable(s, i, j, player)) {
+                    stability--;
+                }
+                // 1
                 if (s.getPos(i, j) == player) {
                     puntuacio += V[i][j];
-                    if (isEstable(s, i, j, player)) {
-                        stability++;
-                    }
                 }
                 if (s.getPos(i, j) == contrari) {
                     puntuacio -= V[i][j];
-                    if (isEstable(s, i, j, player)) {
-                        stability--;
-                    }
                 }
             }
+        }
+
+        // Count the number of legal moves available to each player
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+
+            }
+        }
+
+        // Add a bonus to the score for the player with more legal moves
+        if (blackMoves > whiteMoves) {
+            puntuacio += 2;
+        } else if (whiteMoves > blackMoves) {
+            puntuacio -= 2;
         }
 
         return puntuacio + stability;
@@ -222,15 +251,15 @@ public class Thundarr implements IPlayer, IAuto {
         int newRow = row + rowDelta;
         int newCol = col + colDelta;
         if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
-            // out of bounds, not surrounded
+            // fora del tauler, no envoltat
             return false;
         }
         if (s.getPos(newRow, newCol) == player) {
-            // same color, not surrounded
+            // mateixa color, no envoltat
             return false;
         }
         if (s.getPos(newRow, newCol) == CellType.EMPTY) {
-            // empty space, not surrounded
+            // espai buit, no envoltat
             return false;
         }
         // Comprovem el seguent espai en la direccio donada
