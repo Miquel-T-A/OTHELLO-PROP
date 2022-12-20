@@ -23,7 +23,7 @@ public class Thundarr implements IPlayer, IAuto {
     private CellType myType;
     private CellType hisType;
     private static HashMap<Long, Integer> zobristTable;
-    private static long[][] zobristKeys;
+    private static long[][][] zobristKeys;
     private static int BOARD_SIZE = 8;
     private static Random RANDOM = new Random();
     private int V[][];
@@ -32,26 +32,41 @@ public class Thundarr implements IPlayer, IAuto {
 
         V = new int[8][8];
 
+        // static weights
+
         // Matriz de puntuaciones
-        V[0] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
+
+        V[0] = new int[] { 100, -3, 11, 8, 8, 11, -3, 100 };
         V[1] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
         V[2] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
         V[3] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
         V[4] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
         V[5] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
         V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
-        V[7] = new int[] { 20, -3, 11, 8, 8, 11, -3, 20 };
+        V[7] = new int[] { 100, -3, 11, 8, 8, 11, -3, 100 };
+
+        /*
+         * V[0] = new int[] { 4, -3, 2, 2, 2, 2, -3, 4 };
+         * V[1] = new int[] { -3, -4, -1, -1, -1, -1, -4, -3 };
+         * V[2] = new int[] { 2, -1, 1, 0, 0, 1, -1, 2 };
+         * V[3] = new int[] { 2, -1, 0, 1, 1, 0, -1, 2 };
+         * V[4] = new int[] { 2, -1, 0, 1, 1, 0, -1, 2 };
+         * V[5] = new int[] { 2, -1, 1, 0, 0, 1, -1, 2 };
+         * V[6] = new int[] { -3, -4, -1, -1, -1, -1, -4, -3 };
+         * V[7] = new int[] { 4, -3, 2, 2, 2, 2, -3, 4 };
+         */
 
         this.name = name;
         zobristTable = new HashMap<>();
 
         // Inicialitzem la taula de hash
-        zobristKeys = new long[BOARD_SIZE][BOARD_SIZE];
+        zobristKeys = new long[BOARD_SIZE][BOARD_SIZE][2];
 
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // Generem un valor aleatori per cada casella del tauler
-                zobristKeys[i][j] = RANDOM.nextLong();
+                zobristKeys[i][j][0] = RANDOM.nextLong();
+                zobristKeys[i][j][1] = RANDOM.nextLong();
             }
         }
     }
@@ -82,7 +97,7 @@ public class Thundarr implements IPlayer, IAuto {
 
         myType = s.getCurrentPlayer();
         hisType = CellType.opposite(myType);
-        Point mov = triaPosicio(s, 6);
+        Point mov = triaPosicio(s, 8);
         return new Move(mov, 0L, 0, SearchType.RANDOM);
         // return move (posicio, 0, 0, MINIMAX)
     }
@@ -114,13 +129,13 @@ public class Thundarr implements IPlayer, IAuto {
             // System.out.println("ENTRAMOS EN ZOBRIST");
             return zobristTable.get(hash);
         }
-        if (s.checkGameOver()) { // ha guanyat algu
+        if (s.isGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
                 return -9999999;
-        } else if (s.isGameOver() || depth == 0) { // no hi ha moviments possibles o profunditat es 0
-            int valor = heuristica(s, s.getCurrentPlayer());
+        } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
+            int valor = heuristica(s);
             zobristTable.put(hash, valor);
             return valor;
         }
@@ -151,13 +166,13 @@ public class Thundarr implements IPlayer, IAuto {
             // System.out.println("ENTRAMOS EN ZOBRIST");
             return zobristTable.get(hash);
         }
-        if (s.checkGameOver()) { // Ha guanyat algu
+        if (s.isGameOver()) { // Ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
                 return -9999999;
-        } else if (s.isGameOver() || depth == 0) { // no hi ha moviments possibles o profunditat es 0
-            int valor = heuristica(s, s.getCurrentPlayer());
+        } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
+            int valor = heuristica(s);
             zobristTable.put(hash, valor);
             return valor;
         }
@@ -180,51 +195,56 @@ public class Thundarr implements IPlayer, IAuto {
         return maxEval;
     }
 
-    public int heuristica(GameStatus s, CellType player) {
+    public int heuristica(GameStatus s) {
         int puntuacio = 0;
         int stability = 0;
-
+        int pecesnostres = 0;
+        int pecescontrari = 0;
         int blackMoves = 0;
         int whiteMoves = 0;
-
-        CellType contrari = CellType.opposite(player);
+        int percentatge = 0;
 
         // Heuristica 1: Contar el numero de peces del tauler
         // Heuristica 2: Contar el numero de peces estables
-        // Heuristica 3: contar el numero de moviments possibles (movilitat)
         // (es a dir, que no poden ser girades per l'oponent)
+        // Heuristica 3: contar el numero de moviments possibles (movilitat)
+        // Heuristica 4 contar numero de peces i fer percentatge
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
 
                 // 3
-                if (s.canMove(new Point(i, j), player)) {
+                if (s.canMove(new Point(i, j), myType)) {
                     blackMoves++;
                 }
-                if (s.canMove(new Point(i, j), contrari)) {
+                if (s.canMove(new Point(i, j), hisType)) {
                     whiteMoves++;
                 }
-                // 2
-                if (isEstable(s, i, j, player)) {
-                    stability++;
-                }
-                if (isEstable(s, i, j, player)) {
-                    stability--;
-                }
+                // 2 TODO MIRAR QUE CASILLA ES LA DEL CENTrO
+                // if (isEstable(s, i, j, myType)) {
+                // stability++;
+                // }
+                // if (isEstable(s, i, j, hisType)) {
+                // stability--;
+                // }
                 // 1
-                if (s.getPos(i, j) == player) {
+                if (s.getPos(i, j) == myType) {
                     puntuacio += V[i][j];
+                    // 4
+                    pecesnostres++;
                 }
-                if (s.getPos(i, j) == contrari) {
+                if (s.getPos(i, j) == hisType) {
                     puntuacio -= V[i][j];
+                    // 4
+                    pecescontrari++;
                 }
             }
         }
 
-        // Count the number of legal moves available to each player
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
+        // Si es a partir de 32 peces comptem les peces
 
-            }
+        if (pecesnostres + pecescontrari >= 50) {
+            percentatge = 100 * (pecesnostres - pecescontrari) / (pecesnostres + pecescontrari);
+
         }
 
         // Add a bonus to the score for the player with more legal moves
@@ -233,8 +253,7 @@ public class Thundarr implements IPlayer, IAuto {
         } else if (whiteMoves > blackMoves) {
             puntuacio -= 2;
         }
-
-        return puntuacio + stability;
+        return puntuacio + stability + percentatge;
     }
 
     // Funcion que comprueba si una casilla es estable
@@ -272,8 +291,11 @@ public class Thundarr implements IPlayer, IAuto {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // si el cuadrat esta ocupat per una peça, XOR el seu valor hash al hash total
                 // hash
-                if (s.getPos(i, j) != CellType.EMPTY) {
-                    hash ^= zobristKeys[i][j];
+                CellType peca = s.getPos(i, j);
+                if (peca == CellType.PLAYER1) {
+                    hash ^= zobristKeys[i][j][0];
+                } else if (peca == CellType.PLAYER2) {
+                    hash ^= zobristKeys[i][j][1];
                 }
             }
         }
