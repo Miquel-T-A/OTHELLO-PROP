@@ -7,6 +7,7 @@ package edu.upc.epsevg.prop.othello;
 
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
 import edu.upc.epsevg.prop.othello.players.RandomPlayer;
+import edu.upc.epsevg.prop.othello.players.Thundarr.Thundarr;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,11 +29,11 @@ public class HeadlessGame {
 
     public static void main(String[] args) {
 
-        IPlayer player1 = new RandomPlayer("Crazy Ivan");
+        IPlayer player1 = new Thundarr("Thundarr");
         //Player player2 = new RandomPlayer("Desdesmonasia");
         IPlayer player2 = new DesdemonaPlayer(1);//GB
 
-        HeadlessGame game = new HeadlessGame(player1, player2, 2, 5);
+        HeadlessGame game = new HeadlessGame(player1, player2, 100, 5);
         GameResult gr = game.start();
         System.out.println(gr);
 

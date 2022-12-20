@@ -26,6 +26,7 @@ public class Thundarr implements IPlayer, IAuto {
     private static long[][][] zobristKeys;
     private static int BOARD_SIZE = 8;
     private static Random RANDOM = new Random();
+    boolean timeout = false;
     private int V[][];
 
     public Thundarr(String name) {
@@ -82,7 +83,8 @@ public class Thundarr implements IPlayer, IAuto {
      */
     @Override
     public void timeout() {
-        // No fem res
+        System.out.println("Timeout");
+        //timeout = true;
     }
 
     /**
@@ -94,7 +96,7 @@ public class Thundarr implements IPlayer, IAuto {
      */
     @Override
     public Move move(GameStatus s) {
-
+        timeout = false;
         myType = s.getCurrentPlayer();
         hisType = CellType.opposite(myType);
         Point mov = triaPosicio(s, 8);
@@ -123,6 +125,9 @@ public class Thundarr implements IPlayer, IAuto {
     }
 
     int minMinimax(GameStatus s, int depth, int beta, int alpha) {
+        // if (timeout) {
+        // return 0;
+        // }
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
             // Si ja hem evaluat aquesta posició del tauler, retornem el valor
@@ -160,6 +165,9 @@ public class Thundarr implements IPlayer, IAuto {
     }
 
     int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
+        // if (timeout) {
+        // return 0;
+        // }
         long hash = getBoardHash(s);
         if (zobristTable.containsKey(hash)) {
             // Si ja hem evaluat aquesta posició del tauler, retornem el valor
