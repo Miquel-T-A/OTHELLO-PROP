@@ -240,12 +240,16 @@ public class Thundarr implements IPlayer, IAuto {
                 if (isEstable(s, i, j, hisType)) {
                     stability--;
                 }
-                if (isPermanent(s, i, j, myType)) {
-                    permanent++;
+                // Miramos si estan en el exterior (priorizamos)
+                if (i == 0 || i == 7 || j == 0 || j == 7) {
+                    if (s.getPos(i, j) == myType) {
+                        puntuacio += 20;
+                    }
+                    if (s.getPos(i, j) == hisType) {
+                        puntuacio -= 20;
+                    }
                 }
-                if (isPermanent(s, i, j, hisType)) {
-                    permanent--;
-                }
+
                 // 1
                 if (s.getPos(i, j) == myType) {
                     puntuacio += V[i][j];
@@ -301,34 +305,6 @@ public class Thundarr implements IPlayer, IAuto {
         }
         // Comprovem el seguent espai en la direccio donada
         return isEnvoltat(s, newRow, newCol, player, rowDelta, colDelta);
-    }
-
-    public boolean isPermanent(GameStatus s, int row, int col, CellType type) {
-        CellType contrari = CellType.opposite(type);
-        // Check if the piece is already surrounded on both sides in the row
-        if ((row > 0 && s.getPos(-1, col) == contrari) &&
-                (row < BOARD_SIZE - 1 && s.getPos(row + 1, col) == contrari)) {
-            return true;
-        }
-
-        // Check if the piece is already surrounded on both sides in the column
-        if ((col > 0 && s.getPos(row, col - 1) == contrari) &&
-                (col < BOARD_SIZE - 1 && s.getPos(row, col + 1) == contrari)) {
-            return true;
-        }
-
-        // Check if the piece is already surrounded on both sides in the diagonal
-        if ((row > 0 && col > 0 && s.getPos(row - 1, col - 1) == contrari) &&
-                (row < BOARD_SIZE - 1 && col < BOARD_SIZE - 1 && s.getPos(row + 1, col + 1) == contrari)) {
-            return true;
-        }
-
-        if ((row > 0 && col < BOARD_SIZE - 1 && s.getPos(row - 1, col + 1) == contrari) &&
-                (row < BOARD_SIZE - 1 && col > 0 && s.getPos(row + 1, col - 1) == contrari)) {
-            return true;
-        }
-
-        return false;
     }
 
     public long getBoardHash(GameStatus s) {
