@@ -7,6 +7,7 @@ import edu.upc.epsevg.prop.othello.IPlayer;
 import edu.upc.epsevg.prop.othello.Move;
 import edu.upc.epsevg.prop.othello.SearchType;
 import java.awt.Point;
+import java.io.Console;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -26,7 +27,9 @@ public class Thundarr implements IPlayer, IAuto {
     private static long[][][] zobristKeys;
     private static int BOARD_SIZE = 8;
     private static Random RANDOM = new Random();
-    boolean timeout = false;
+    private boolean timeout = false;
+    private int minEval = Integer.MIN_VALUE;
+    private int maxEval = Integer.MAX_VALUE;
     private int V[][];
 
     public Thundarr(String name) {
@@ -83,8 +86,7 @@ public class Thundarr implements IPlayer, IAuto {
      */
     @Override
     public void timeout() {
-        System.out.println("Timeout");
-        //timeout = true;
+        timeout = true;
     }
 
     /**
@@ -99,7 +101,7 @@ public class Thundarr implements IPlayer, IAuto {
         timeout = false;
         myType = s.getCurrentPlayer();
         hisType = CellType.opposite(myType);
-        Point mov = triaPosicio(s, 8);
+        Point mov = triaPosicio(s, 100);
         return new Move(mov, 0L, 0, SearchType.RANDOM);
         // return move (posicio, 0, 0, MINIMAX)
     }
@@ -109,42 +111,48 @@ public class Thundarr implements IPlayer, IAuto {
         int maxEval = Integer.MIN_VALUE;
         Point bestMove = new Point();
         ArrayList<Point> moves = s.getMoves();
-
+        int indicemov = 0;
+        int eval = 0;
         // Perform the iterative deepening search
-        for (int i = 0; i < moves.size(); i++) {
-            GameStatus fill = new GameStatus(s);
-            fill.movePiece(moves.get(i));
-            int eval = minMinimax(fill, depth - 1, Integer.MAX_VALUE, Integer.MIN_VALUE);
-            if (maxEval < eval) {
-                maxEval = eval;
-                bestMove = moves.get(i);
-                System.out.println("MOVIMIENTO: " + i + "de" + moves.size() + " " + bestMove + " " + eval);
+        for (int d = 1; d <= depth; d++) {
+            for (int i = 0; i < moves.size(); i++) {
+                GameStatus fill = new GameStatus(s);
+                fill.movePiece(moves.get(i));
+                eval = minMinimax(fill, d - 1, Integer.MAX_VALUE, Integer.MIN_VALUE);
+                // System.out.println("EVAL: " + eval);
+                if (eval > maxEval) {
+                    maxEval = eval;
+                    bestMove = moves.get(i);
+                    indicemov = i;
+                }
             }
+            if (!timeout)
+                System.out.println("DEPTH: " + d);
         }
+        System.out.println("MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + eval);
         return bestMove;
     }
 
     int minMinimax(GameStatus s, int depth, int beta, int alpha) {
-        // if (timeout) {
-        // return 0;
-        // }
         long hash = getBoardHash(s);
-        if (zobristTable.containsKey(hash)) {
-            // Si ja hem evaluat aquesta posició del tauler, retornem el valor
-            // System.out.println("ENTRAMOS EN ZOBRIST");
-            return zobristTable.get(hash);
-        }
+        // System.out.println("HASH: " + hash);
+
+        // if (zobristTable.containsKey(hash)) {
+        // Si ja hem evaluat aquesta posició del tauler, retornem el valor
+        // System.out.println("ENTRAMOS EN ZOBRIST");
+        // return zobristTable.get(hash);
+        // }
         if (s.isGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
                 return -9999999;
-        } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
+        } else if (depth == 0 || timeout) { // no hi ha moviments possibles o profunditat es 0
             int valor = heuristica(s);
             zobristTable.put(hash, valor);
             return valor;
         }
-        int minEval = Integer.MAX_VALUE;
+        minEval = Integer.MAX_VALUE;
         ArrayList<Point> moves = s.getMoves();
 
         // Iterem sobre tots el moviments nous posibles
@@ -165,27 +173,25 @@ public class Thundarr implements IPlayer, IAuto {
     }
 
     int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
-        // if (timeout) {
-        // return 0;
-        // }
         long hash = getBoardHash(s);
-        if (zobristTable.containsKey(hash)) {
-            // Si ja hem evaluat aquesta posició del tauler, retornem el valor
-            // System.out.println("ENTRAMOS EN ZOBRIST");
-            return zobristTable.get(hash);
-        }
+        // System.out.println("HASH: " + hash);
+        // if (zobristTable.containsKey(hash)) {
+        // Si ja hem evaluat aquesta posició del tauler, retornem el valor
+        // System.out.println("ENTRAMOS EN ZOBRIST");
+        // return zobristTable.get(hash);
+        // }
         if (s.isGameOver()) { // Ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
                 return -9999999;
-        } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
+        } else if (depth == 0 || timeout) { // no hi ha moviments possibles o profunditat es 0
             int valor = heuristica(s);
             zobristTable.put(hash, valor);
             return valor;
         }
 
-        int maxEval = Integer.MIN_VALUE + 1;
+        maxEval = Integer.MIN_VALUE + 1;
         ArrayList<Point> moves = s.getMoves();
 
         // Iterem sobre tots el moviments nous posibles
@@ -211,9 +217,9 @@ public class Thundarr implements IPlayer, IAuto {
         int blackMoves = 0;
         int whiteMoves = 0;
         int percentatge = 0;
-
+        int permanent = 0;
         // Heuristica 1: Contar el numero de peces del tauler
-        // Heuristica 2: Contar el numero de peces estables
+        // Heuristica 2: Contar el numero de peces permanents
         // (es a dir, que no poden ser girades per l'oponent)
         // Heuristica 3: contar el numero de moviments possibles (movilitat)
         // Heuristica 4 contar numero de peces i fer percentatge
@@ -228,12 +234,18 @@ public class Thundarr implements IPlayer, IAuto {
                     whiteMoves++;
                 }
                 // 2 TODO MIRAR QUE CASILLA ES LA DEL CENTrO
-                // if (isEstable(s, i, j, myType)) {
-                // stability++;
-                // }
-                // if (isEstable(s, i, j, hisType)) {
-                // stability--;
-                // }
+                if (isEstable(s, i, j, myType)) {
+                    stability++;
+                }
+                if (isEstable(s, i, j, hisType)) {
+                    stability--;
+                }
+                if (isPermanent(s, i, j, myType)) {
+                    permanent++;
+                }
+                if (isPermanent(s, i, j, hisType)) {
+                    permanent--;
+                }
                 // 1
                 if (s.getPos(i, j) == myType) {
                     puntuacio += V[i][j];
@@ -249,10 +261,8 @@ public class Thundarr implements IPlayer, IAuto {
         }
 
         // Si es a partir de 32 peces comptem les peces
-
         if (pecesnostres + pecescontrari >= 50) {
             percentatge = 100 * (pecesnostres - pecescontrari) / (pecesnostres + pecescontrari);
-
         }
 
         // Add a bonus to the score for the player with more legal moves
@@ -261,7 +271,7 @@ public class Thundarr implements IPlayer, IAuto {
         } else if (whiteMoves > blackMoves) {
             puntuacio -= 2;
         }
-        return puntuacio + stability + percentatge;
+        return puntuacio + stability + percentatge + permanent;
     }
 
     // Funcion que comprueba si una casilla es estable
@@ -291,6 +301,34 @@ public class Thundarr implements IPlayer, IAuto {
         }
         // Comprovem el seguent espai en la direccio donada
         return isEnvoltat(s, newRow, newCol, player, rowDelta, colDelta);
+    }
+
+    public boolean isPermanent(GameStatus s, int row, int col, CellType type) {
+        CellType contrari = CellType.opposite(type);
+        // Check if the piece is already surrounded on both sides in the row
+        if ((row > 0 && s.getPos(-1, col) == contrari) &&
+                (row < BOARD_SIZE - 1 && s.getPos(row + 1, col) == contrari)) {
+            return true;
+        }
+
+        // Check if the piece is already surrounded on both sides in the column
+        if ((col > 0 && s.getPos(row, col - 1) == contrari) &&
+                (col < BOARD_SIZE - 1 && s.getPos(row, col + 1) == contrari)) {
+            return true;
+        }
+
+        // Check if the piece is already surrounded on both sides in the diagonal
+        if ((row > 0 && col > 0 && s.getPos(row - 1, col - 1) == contrari) &&
+                (row < BOARD_SIZE - 1 && col < BOARD_SIZE - 1 && s.getPos(row + 1, col + 1) == contrari)) {
+            return true;
+        }
+
+        if ((row > 0 && col < BOARD_SIZE - 1 && s.getPos(row - 1, col + 1) == contrari) &&
+                (row < BOARD_SIZE - 1 && col > 0 && s.getPos(row + 1, col - 1) == contrari)) {
+            return true;
+        }
+
+        return false;
     }
 
     public long getBoardHash(GameStatus s) {

@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.ref.WeakReference;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -238,7 +239,18 @@ public class Board extends MouseAdapter {
             m.timeout();
         }
     }
-
+    /**
+     * This method guarantees that garbage collection is done unlike
+     * <code>{@link System#gc()}</code>
+     */
+    public static void gc() {
+        Object obj = new Object();
+        WeakReference ref = new WeakReference<Object>(obj);
+        obj = null;
+        while (ref.get() != null) {
+            System.gc();
+        }
+    }
     /**
      * Fil per realitzar el moviment
      */
@@ -265,6 +277,7 @@ public class Board extends MouseAdapter {
                 info += "Node explorats:    " + m.getNumerOfNodesExplored();
                 Board.this.controlPanel.setInfo(info);
                 hasMoved = true;
+                gc();
                 return m;
             } catch (Exception e) {
                 StringWriter sw = new StringWriter();

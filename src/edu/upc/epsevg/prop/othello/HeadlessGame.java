@@ -8,6 +8,7 @@ package edu.upc.epsevg.prop.othello;
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
 import edu.upc.epsevg.prop.othello.players.RandomPlayer;
 import edu.upc.epsevg.prop.othello.players.Thundarr.Thundarr;
+import java.lang.ref.WeakReference;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -29,11 +30,11 @@ public class HeadlessGame {
 
     public static void main(String[] args) {
 
-        IPlayer player1 = new Thundarr("Thundarr");
+        IPlayer player1 = new Thundarr("Crazy Ivan");
         //Player player2 = new RandomPlayer("Desdesmonasia");
-        IPlayer player2 = new DesdemonaPlayer(1);//GB
+        IPlayer player2 = new DesdemonaPlayer(2);//GB
 
-        HeadlessGame game = new HeadlessGame(player1, player2, 100, 5);
+        HeadlessGame game = new HeadlessGame(player1, player2, 4, 5);
         GameResult gr = game.start();
         System.out.println(gr);
 
@@ -73,13 +74,21 @@ public class HeadlessGame {
                 semaphore.tryAcquire();
                 //System.out.println("." + new Date());
                 final Result r = new Result();
+                CellType cp = status.getCurrentPlayer();
                 Thread t1 = new Thread(() -> {
-                    Move m = players[status.getCurrentPlayer() == CellType.PLAYER1 ? 0 : 1].move(new GameStatus(status));
+                    Move m = null;
+                    try {
+                        m = players[cp == CellType.PLAYER1 ? 0 : 1].move(new GameStatus(status));
+                    } catch(Exception ex) {
+                        System.out.println("Excepció descontrolada al player:"+cp.name());
+                        ex.printStackTrace();
+                    }
                     if (m != null) {
                         status.movePiece(m.getTo());
                     } else {
                         status.forceLoser();
                     }
+                    System.out.print(cp==CellType.PLAYER1?"1":"2");
                     r.ok = true;
                     semaphore.release();
                 });
@@ -90,7 +99,7 @@ public class HeadlessGame {
                     } catch (InterruptedException ex) {
                     }
                     if (!r.ok) {
-                        players[status.getCurrentPlayer() == CellType.PLAYER1 ? 0 : 1].timeout();
+                        players[cp == CellType.PLAYER1 ? 0 : 1].timeout();
                     }
                 });
 
@@ -100,13 +109,17 @@ public class HeadlessGame {
                 try {
                     if (!semaphore.tryAcquire(1, timeout * 1000 + WAIT_EXTRA_TIME, TimeUnit.MILLISECONDS)) {
 
-                        System.out.println("Espera il·legal !");
-                        throw new RuntimeException("Jugador trampós ! Espera il·legal !");
+                        System.out.println("Espera il·legal ! Player trampós:"+cp.name());
+                        //throw new RuntimeException("Jugador trampós ! Espera il·legal !");
+                        // Som millors persones deixant que el jugador il·legal continui jugant...
+                        semaphore.acquire();
                     }
+                    
                 } catch (InterruptedException ex) {
                     Logger.getLogger(HeadlessGame.class.getName()).log(Level.SEVERE, null, ex);
                 }
-
+                // Netegem la memòria (for free!)
+                gc();
             }
         }
         return status.winnerPlayer;
@@ -166,4 +179,18 @@ public class HeadlessGame {
         }
     }
 
+    
+    /**
+     * This method guarantees that garbage collection is done unlike
+     * <code>{@link System#gc()}</code>
+     */
+    public static void gc() {
+        Object obj = new Object();
+        WeakReference ref = new WeakReference<Object>(obj);
+        obj = null;
+        while (ref.get() != null) {
+            System.gc();
+        }
+    }
 }
+    

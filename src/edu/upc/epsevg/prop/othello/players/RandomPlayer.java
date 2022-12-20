@@ -39,6 +39,7 @@ public class RandomPlayer implements IPlayer, IAuto {
     @Override
     public Move move(GameStatus s) {
 
+
         ArrayList<Point> moves =  s.getMoves();
         if(moves.isEmpty())
         {
