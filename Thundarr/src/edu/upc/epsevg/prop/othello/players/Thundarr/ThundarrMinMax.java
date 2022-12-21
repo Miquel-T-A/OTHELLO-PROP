@@ -29,7 +29,7 @@ public class ThundarrMinMax implements IPlayer, IAuto {
     private int V[][];
     private int depth;
 
-    public ThundarrMinMax(String name, int depth) {
+    public ThundarrMinMax(int depth) {
 
         V = new int[8][8];
 
@@ -46,7 +46,7 @@ public class ThundarrMinMax implements IPlayer, IAuto {
         V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
         V[7] = new int[] { 100, -3, 11, 8, 8, 11, -3, 100 };
 
-        this.name = name;
+        this.name = getName();
         this.depth = depth;
     }
 

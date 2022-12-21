@@ -31,9 +31,9 @@ public class ThundarrIDS implements IPlayer, IAuto {
     private int minEval = Integer.MIN_VALUE;
     private int maxEval = Integer.MAX_VALUE;
     private int V[][];
-    private int depth = 1;
+    private int evalanterior = 0;
 
-    public ThundarrIDS(String name) {
+    public ThundarrIDS() {
         V = new int[8][8];
 
         // Matriz de puntuaciones
@@ -47,18 +47,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
         V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
         V[7] = new int[] { 100, -3, 11, 8, 8, 11, -3, 100 };
 
-        /*
-         * V[0] = new int[] { 4, -3, 2, 2, 2, 2, -3, 4 };
-         * V[1] = new int[] { -3, -4, -1, -1, -1, -1, -4, -3 };
-         * V[2] = new int[] { 2, -1, 1, 0, 0, 1, -1, 2 };
-         * V[3] = new int[] { 2, -1, 0, 1, 1, 0, -1, 2 };
-         * V[4] = new int[] { 2, -1, 0, 1, 1, 0, -1, 2 };
-         * V[5] = new int[] { 2, -1, 1, 0, 0, 1, -1, 2 };
-         * V[6] = new int[] { -3, -4, -1, -1, -1, -1, -4, -3 };
-         * V[7] = new int[] { 4, -3, 2, 2, 2, 2, -3, 4 };
-         */
-
-        this.name = name;
+        this.name = getName();
         zobristTable = new HashMap<>();
 
         // Inicialitzem la taula de hash
@@ -97,20 +86,19 @@ public class ThundarrIDS implements IPlayer, IAuto {
     @Override
     public Move move(GameStatus s) {
         timeout = false;
-        myType = s.getCurrentPlayer();
-        hisType = CellType.opposite(myType);
-        Point mov = triaPosicio(s);
-        return new Move(mov, 0L, 0, SearchType.RANDOM);
-        // return move (posicio, 0, 0, MINIMAX)
-    }
-
-    Point triaPosicio(GameStatus s) {
-
-        int maxEval = Integer.MIN_VALUE;
-        Point bestMove = new Point();
-        ArrayList<Point> moves = s.getMoves();
         int indicemov = 0;
         int eval = 0;
+        int depth = 1;
+
+        myType = s.getCurrentPlayer();
+        hisType = CellType.opposite(myType);
+
+        int maxEval = Integer.MIN_VALUE;
+
+        Point bestMove = new Point();
+
+        ArrayList<Point> moves = s.getMoves();
+
         // Fem una cerca en profunditat iterativa
         while (!timeout) {
             for (int i = 0; i < moves.size(); i++) {
@@ -125,24 +113,26 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 }
             }
             depth++;
-            System.out.println("DEPTH: " + depth);
+            System.out.println("PROFUNDITAT: " + depth);
         }
+        evalanterior = maxEval;
+
         System.out.println("MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + eval);
-        return bestMove;
+
+        return new Move(bestMove, 0L, 0, SearchType.MINIMAX_IDS);
     }
 
     int minMinimax(GameStatus s, int depth, int beta, int alpha) {
-        long hash = getBoardHash(s);
         if (timeout)
-            return 0;
+            return evalanterior;
+        /*
+         * long hash = calculaBoardHash(s);
+         * int value = treuZobrist(hash);
+         * if (value != Integer.MIN_VALUE) {
+         * return value;
+         * }
+         */
 
-        // System.out.println("HASH: " + hash);
-
-        // if (zobristTable.containsKey(hash)) {
-        // Si ja hem evaluat aquesta posició del tauler, retornem el valor
-        // System.out.println("ENTRAMOS EN ZOBRIST");
-        // return zobristTable.get(hash);
-        // }
         if (s.isGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
@@ -150,7 +140,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 return -9999999;
         } else if (depth == 0 || timeout) { // no hi ha moviments possibles o profunditat es 0
             int valor = heuristica(s);
-            zobristTable.put(hash, valor);
+            // zobristTable.put(hash, valor);
             return valor;
         }
 
@@ -170,20 +160,20 @@ public class ThundarrIDS implements IPlayer, IAuto {
             }
 
         }
-        zobristTable.put(hash, minEval); // Guardem el valor en la zobrist table
+        // zobristTable.put(hash, minEval); // Guardem el valor en la zobrist table
         return minEval;
     }
 
     int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
         if (timeout)
-            return 0;
-        long hash = getBoardHash(s);
-        // System.out.println("HASH: " + hash);
-        // if (zobristTable.containsKey(hash)) {
-        // Si ja hem evaluat aquesta posició del tauler, retornem el valor
-        // System.out.println("ENTRAMOS EN ZOBRIST");
-        // return zobristTable.get(hash);
-        // }
+            return evalanterior;
+        /*
+         * long hash = calculaBoardHash(s);
+         * int value = treuZobrist(hash);
+         * if (value != Integer.MIN_VALUE) {
+         * return value;
+         * }
+         */
         if (s.isGameOver()) { // Ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
@@ -191,11 +181,11 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 return -9999999;
         } else if (depth == 0 || timeout) { // no hi ha moviments possibles o profunditat es 0
             int valor = heuristica(s);
-            zobristTable.put(hash, valor);
+            // zobristTable.put(hash, valor);
             return valor;
         }
 
-        maxEval = Integer.MIN_VALUE + 1;
+        maxEval = Integer.MIN_VALUE;
         ArrayList<Point> moves = s.getMoves();
 
         // Iterem sobre tots el moviments nous posibles
@@ -208,7 +198,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 break;
             }
         }
-        zobristTable.put(hash, maxEval); // Guardem el valor en la zobrist table
+        // zobristTable.put(hash, maxEval); // Guardem el valor en la zobrist table
 
         return maxEval;
     }
@@ -311,7 +301,11 @@ public class ThundarrIDS implements IPlayer, IAuto {
         return isEnvoltat(s, newRow, newCol, player, rowDelta, colDelta);
     }
 
-    public long getBoardHash(GameStatus s) {
+    public int treuZobrist(long hash) {
+        return zobristTable.getOrDefault(hash, Integer.MIN_VALUE);
+    }
+
+    public long calculaBoardHash(GameStatus s) {
         long hash = 0;
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {

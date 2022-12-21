@@ -7,7 +7,8 @@ package edu.upc.epsevg.prop.othello;
 
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
 import edu.upc.epsevg.prop.othello.players.RandomPlayer;
-import edu.upc.epsevg.prop.othello.players.Thundarr.Thundarr;
+import edu.upc.epsevg.prop.othello.players.Thundarr.ThundarrMinMax;
+import edu.upc.epsevg.prop.othello.players.Thundarr.ThundarrIDS;
 import java.lang.ref.WeakReference;
 
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class HeadlessGame {
 
     public static void main(String[] args) {
 
-        IPlayer player1 = new Thundarr("Crazy Ivan");
+        IPlayer player1 = new ThundarrIDS();
         //Player player2 = new RandomPlayer("Desdesmonasia");
         IPlayer player2 = new DesdemonaPlayer(2);//GB
 
