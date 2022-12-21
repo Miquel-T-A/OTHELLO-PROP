@@ -31,6 +31,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
     private int minEval = Integer.MIN_VALUE;
     private int maxEval = Integer.MAX_VALUE;
     private int V[][];
+    private HashMap<Integer, Integer> searchScores; // Array de puntuacions de cada profunditat
     private int evalanterior = 0;
 
     public ThundarrIDS() {
@@ -96,7 +97,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
         int maxEval = Integer.MIN_VALUE;
 
         Point bestMove = new Point();
-
+        searchScores = new HashMap<Integer, Integer>();
         ArrayList<Point> moves = s.getMoves();
 
         // Fem una cerca en profunditat iterativa
@@ -115,7 +116,6 @@ public class ThundarrIDS implements IPlayer, IAuto {
             depth++;
             System.out.println("PROFUNDITAT: " + depth);
         }
-        evalanterior = maxEval;
 
         System.out.println("MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + eval);
 
@@ -124,7 +124,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
 
     int minMinimax(GameStatus s, int depth, int beta, int alpha) {
         if (timeout)
-            return evalanterior;
+            return searchScores.getOrDefault(depth + 1, Integer.MIN_VALUE);
         /*
          * long hash = calculaBoardHash(s);
          * int value = treuZobrist(hash);
@@ -160,13 +160,15 @@ public class ThundarrIDS implements IPlayer, IAuto {
             }
 
         }
+        searchScores.put(depth, minEval);
+
         // zobristTable.put(hash, minEval); // Guardem el valor en la zobrist table
         return minEval;
     }
 
     int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
         if (timeout)
-            return evalanterior;
+            return searchScores.getOrDefault(depth + 1, Integer.MIN_VALUE);
         /*
          * long hash = calculaBoardHash(s);
          * int value = treuZobrist(hash);
@@ -198,6 +200,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 break;
             }
         }
+        searchScores.put(depth, maxEval);
         // zobristTable.put(hash, maxEval); // Guardem el valor en la zobrist table
 
         return maxEval;
@@ -259,7 +262,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
         }
 
         // Si es a partir de 32 peces comptem les peces
-        if (pecesnostres + pecescontrari >= 50) {
+        if (pecesnostres + pecescontrari >= 46) {
             percentatge = 100 * (pecesnostres - pecescontrari) / (pecesnostres + pecescontrari);
         }
 
