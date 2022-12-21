@@ -17,7 +17,7 @@ import java.util.Random;
  * 
  * @author bernat
  */
-public class Thundarr implements IPlayer, IAuto {
+public class ThundarrIDS implements IPlayer, IAuto {
 
     private String name;
     private GameStatus s;
@@ -31,12 +31,10 @@ public class Thundarr implements IPlayer, IAuto {
     private int minEval = Integer.MIN_VALUE;
     private int maxEval = Integer.MAX_VALUE;
     private int V[][];
+    private int depth = 1;
 
-    public Thundarr(String name) {
-
+    public ThundarrIDS(String name) {
         V = new int[8][8];
-
-        // static weights
 
         // Matriz de puntuaciones
 
@@ -101,24 +99,24 @@ public class Thundarr implements IPlayer, IAuto {
         timeout = false;
         myType = s.getCurrentPlayer();
         hisType = CellType.opposite(myType);
-        Point mov = triaPosicio(s, 100);
+        Point mov = triaPosicio(s);
         return new Move(mov, 0L, 0, SearchType.RANDOM);
         // return move (posicio, 0, 0, MINIMAX)
     }
 
-    Point triaPosicio(GameStatus s, int depth) {
+    Point triaPosicio(GameStatus s) {
 
         int maxEval = Integer.MIN_VALUE;
         Point bestMove = new Point();
         ArrayList<Point> moves = s.getMoves();
         int indicemov = 0;
         int eval = 0;
-        // Perform the iterative deepening search
-        for (int d = 1; d <= depth; d++) {
+        // Fem una cerca en profunditat iterativa
+        while (!timeout) {
             for (int i = 0; i < moves.size(); i++) {
                 GameStatus fill = new GameStatus(s);
                 fill.movePiece(moves.get(i));
-                eval = minMinimax(fill, d - 1, Integer.MAX_VALUE, Integer.MIN_VALUE);
+                eval = minMinimax(fill, depth, Integer.MAX_VALUE, Integer.MIN_VALUE);
                 // System.out.println("EVAL: " + eval);
                 if (eval > maxEval) {
                     maxEval = eval;
@@ -126,8 +124,8 @@ public class Thundarr implements IPlayer, IAuto {
                     indicemov = i;
                 }
             }
-            if (!timeout)
-                System.out.println("DEPTH: " + d);
+            depth++;
+            System.out.println("DEPTH: " + depth);
         }
         System.out.println("MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + eval);
         return bestMove;
@@ -135,6 +133,9 @@ public class Thundarr implements IPlayer, IAuto {
 
     int minMinimax(GameStatus s, int depth, int beta, int alpha) {
         long hash = getBoardHash(s);
+        if (timeout)
+            return 0;
+
         // System.out.println("HASH: " + hash);
 
         // if (zobristTable.containsKey(hash)) {
@@ -152,6 +153,7 @@ public class Thundarr implements IPlayer, IAuto {
             zobristTable.put(hash, valor);
             return valor;
         }
+
         minEval = Integer.MAX_VALUE;
         ArrayList<Point> moves = s.getMoves();
 
@@ -173,6 +175,8 @@ public class Thundarr implements IPlayer, IAuto {
     }
 
     int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
+        if (timeout)
+            return 0;
         long hash = getBoardHash(s);
         // System.out.println("HASH: " + hash);
         // if (zobristTable.containsKey(hash)) {

@@ -34,7 +34,7 @@ public class HeadlessGame {
         //Player player2 = new RandomPlayer("Desdesmonasia");
         IPlayer player2 = new DesdemonaPlayer(2);//GB
 
-        HeadlessGame game = new HeadlessGame(player1, player2, 4, 5);
+        HeadlessGame game = new HeadlessGame(player1, player2, 2, 10);
         GameResult gr = game.start();
         System.out.println(gr);
 
