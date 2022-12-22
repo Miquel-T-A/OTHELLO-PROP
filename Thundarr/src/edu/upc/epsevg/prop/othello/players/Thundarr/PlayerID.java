@@ -16,7 +16,7 @@ import java.util.Random;
  * 
  * @author Miquel Torres, Pau Raduà
  */
-public class ThundarrIDS implements IPlayer, IAuto {
+public class PlayerID implements IPlayer, IAuto {
 
     private String name;
     private CellType myType;
@@ -30,8 +30,9 @@ public class ThundarrIDS implements IPlayer, IAuto {
     private int maxEval = Integer.MAX_VALUE;
     private int V[][];
     private int evalanterior = 0; // Valor de la evaluación de profundidad anterior
+    private int nodesexplorats = 0; // Número de nodos explorados
 
-    public ThundarrIDS() {
+    public PlayerID() {
         V = new int[8][8];
 
         // Matriz de puntuaciones
@@ -92,7 +93,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
         int indicemov = 0;
         int eval = 0;
         int depth = 1;
-
+        nodesexplorats = 0;
         myType = s.getCurrentPlayer();
         hisType = CellType.opposite(myType);
 
@@ -107,7 +108,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 GameStatus s_aux = new GameStatus(s);
                 s_aux.movePiece(moves.get(i));
                 eval = minMinimax(s_aux, depth, Integer.MAX_VALUE, Integer.MIN_VALUE);
-                System.out.println("EVAL: " + eval);
+                // System.out.println("EVAL: " + eval);
                 if (eval > maxEval) {
                     maxEval = eval;
                     bestMove = moves.get(i);
@@ -119,7 +120,9 @@ public class ThundarrIDS implements IPlayer, IAuto {
             System.out.println("PROFUNDITAT: " + depth + " " + evalanterior);
         }
 
-        System.out.println("MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + eval);
+        System.out.println(
+                "MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + maxEval
+                        + " NODESEXPLORATS: " + nodesexplorats);
 
         return new Move(bestMove, 0L, 0, SearchType.MINIMAX_IDS);
     }
@@ -139,20 +142,19 @@ public class ThundarrIDS implements IPlayer, IAuto {
             // return valor;
         }
 
-        long hash = calculaBoardHash(s);
-        if (zobristTable.containsKey(hash)) {
-            System.out.println("Zobrist");
-            return zobristTable.get(hash);
-        }
-
         if (s.isGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
                 return -9999999;
         } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
+
+            long hash = calculaBoardHash(s);
+            if (zobristTable.containsKey(hash)) {
+                return zobristTable.get(hash);
+            }
             int valor = heuristica(s);
-            // zobristTable.put(hash, valor);
+            zobristTable.put(hash, valor);
             return valor;
         }
 
@@ -173,7 +175,6 @@ public class ThundarrIDS implements IPlayer, IAuto {
 
         }
 
-        // zobristTable.put(hash, minEval); // Guardem el valor en la zobrist table
         return minEval;
     }
 
@@ -191,21 +192,20 @@ public class ThundarrIDS implements IPlayer, IAuto {
             return evalanterior;
         }
 
-        long hash = calculaBoardHash(s);
-        if (zobristTable.containsKey(hash)) {
-            System.out.println("Zobrist");
-
-            return zobristTable.get(hash);
-        }
-
         if (s.isGameOver()) { // Ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
                 return -9999999;
         } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
+
+            long hash = calculaBoardHash(s);
+            if (zobristTable.containsKey(hash)) {
+                return zobristTable.get(hash);
+            }
+
             int valor = heuristica(s);
-            // zobristTable.put(hash, valor);
+            zobristTable.put(hash, valor);
             return valor;
         }
 
@@ -222,8 +222,6 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 break;
             }
         }
-        // searchScores.put(depth, maxEval);
-        // zobristTable.put(hash, maxEval); // Guardem el valor en la zobrist table
 
         return maxEval;
     }
@@ -304,6 +302,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
         } else if (whiteMoves > blackMoves) {
             puntuacio -= 2;
         }
+        nodesexplorats++;
         return puntuacio + stability + percentatge + permanent;
     }
 
@@ -423,18 +422,18 @@ public class ThundarrIDS implements IPlayer, IAuto {
      * @return Hash del tauler.
      */
     public long calculaBoardHash(GameStatus s) {
+        ThundarrAux s_aux = new ThundarrAux(s);
         long hash = 0;
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // si el cuadrat esta ocupat per una peça, XOR el seu valor hash al hash total
                 // hash
-                CellType peca = s.getPos(i, j);
-                if (peca != CellType.EMPTY) {
-                    hash ^= zobristKeys[i][j][0];
-                    hash ^= zobristKeys[i][j][1];
+                if (s_aux.getOccupation(i, j)) {
+                    hash ^= zobristKeys[i][j][s_aux.getColor(i, j)];
                 }
             }
         }
-        return Math.abs(hash);
+        return hash;
     }
+
 }

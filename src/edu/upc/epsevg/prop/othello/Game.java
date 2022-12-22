@@ -4,8 +4,7 @@ import edu.upc.epsevg.prop.othello.players.HumanPlayer;
 import edu.upc.epsevg.prop.othello.players.RandomPlayer;
 import edu.upc.epsevg.prop.othello.IPlayer;
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
-import edu.upc.epsevg.prop.othello.players.Thundarr.ThundarrIDS;
-import edu.upc.epsevg.prop.othello.players.Thundarr.ThundarrMinMax;
+import edu.upc.epsevg.prop.othello.players.Thundarr.PlayerID;
 
 
 
@@ -27,7 +26,7 @@ public class Game {
             public void run() {
                 
                 //IPlayer player1 = new HumanPlayer("Human1");
-                IPlayer player1 = new ThundarrIDS();
+                IPlayer player1 = new PlayerID();
 
                 IPlayer player2 = new DesdemonaPlayer(2);//GB
 
