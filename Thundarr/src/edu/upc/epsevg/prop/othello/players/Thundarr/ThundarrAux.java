@@ -13,6 +13,13 @@ public class ThundarrAux extends GameStatus {
         return (board_color.get(valor) ? 1 : 0);
     }
 
+    /**
+     * Devuelve el valor del bit en un index en especific
+     * 
+     * @param fila    Posicio de la fila
+     * @param columna Posicio de la columna
+     * @return True si esta, false si no
+     */
     public boolean getOccupation(int fila, int columna) {
         return (board_occupied.get(fila + columna * 8));
     }
