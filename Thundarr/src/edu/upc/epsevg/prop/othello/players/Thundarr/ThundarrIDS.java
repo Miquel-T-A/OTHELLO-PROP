@@ -7,20 +7,18 @@ import edu.upc.epsevg.prop.othello.IPlayer;
 import edu.upc.epsevg.prop.othello.Move;
 import edu.upc.epsevg.prop.othello.SearchType;
 import java.awt.Point;
-import java.io.Console;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
 /**
- * Jugador aleatori
+ * Jugador Thundarr amb IDS
  * 
- * @author bernat
+ * @author Miquel Torres, Pau Raduà
  */
 public class ThundarrIDS implements IPlayer, IAuto {
 
     private String name;
-    private GameStatus s;
     private CellType myType;
     private CellType hisType;
     private static HashMap<Long, Integer> zobristTable;
@@ -31,9 +29,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
     private int minEval = Integer.MIN_VALUE;
     private int maxEval = Integer.MAX_VALUE;
     private int V[][];
-    private HashMap<Integer, Integer> searchScores; // Array de puntuacions de cada profunditat por movimiento
     private int evalanterior = 0; // Valor de la evaluación de profundidad anterior
-    private int depthmax = 1;
 
     public ThundarrIDS() {
         V = new int[8][8];
@@ -53,18 +49,22 @@ public class ThundarrIDS implements IPlayer, IAuto {
         zobristTable = new HashMap<>();
 
         // Inicialitzem la taula de hash
-        zobristKeys = new long[BOARD_SIZE][BOARD_SIZE][3];
+        zobristKeys = new long[BOARD_SIZE][BOARD_SIZE][2];
 
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 // Generem un valor aleatori per cada casella del tauler
                 zobristKeys[i][j][0] = RANDOM.nextLong();
                 zobristKeys[i][j][1] = RANDOM.nextLong();
-                zobristKeys[i][j][2] = RANDOM.nextLong();
             }
         }
     }
 
+    /**
+     * Ens dona el nom del jugador.
+     * 
+     * @return Nom del jugador.
+     */
     @Override
     public String getName() {
         return "Thundarr";
@@ -99,15 +99,14 @@ public class ThundarrIDS implements IPlayer, IAuto {
         int maxEval = Integer.MIN_VALUE;
 
         Point bestMove = new Point();
-        searchScores = new HashMap<Integer, Integer>();
         ArrayList<Point> moves = s.getMoves();
 
         // Fem una cerca en profunditat iterativa
-        while (!timeout) {
+        while (!timeout && moves.size() > 0) {
             for (int i = 0; i < moves.size(); i++) {
-                GameStatus fill = new GameStatus(s);
-                fill.movePiece(moves.get(i));
-                eval = minMinimax(fill, depth, Integer.MAX_VALUE, Integer.MIN_VALUE);
+                GameStatus s_aux = new GameStatus(s);
+                s_aux.movePiece(moves.get(i));
+                eval = minMinimax(s_aux, depth, Integer.MAX_VALUE, Integer.MIN_VALUE);
                 System.out.println("EVAL: " + eval);
                 if (eval > maxEval) {
                     maxEval = eval;
@@ -125,19 +124,26 @@ public class ThundarrIDS implements IPlayer, IAuto {
         return new Move(bestMove, 0L, 0, SearchType.MINIMAX_IDS);
     }
 
+    /**
+     * Algoritme min de minimax
+     * 
+     * @param s     Tauler i estat actual de joc.
+     * @param depth Profunditat de la cerca.
+     * @param beta  Valor de beta (poda).
+     * @param alpha Valor de alpha (poda).
+     * @return valor de la heurística.
+     */
     int minMinimax(GameStatus s, int depth, int beta, int alpha) {
         if (timeout) {
-            int valor = searchScores.getOrDefault(depthmax, Integer.MIN_VALUE);
-            System.out.println("TIMEOUT VALOR: " + evalanterior);
             return evalanterior;
             // return valor;
         }
 
-        // long hash = calculaBoardHash(s);
-        // int value = treuZobrist(hash);
-        // if (value != Integer.MIN_VALUE) {
-        // return value;
-        // }
+        long hash = calculaBoardHash(s);
+        if (zobristTable.containsKey(hash)) {
+            System.out.println("Zobrist");
+            return zobristTable.get(hash);
+        }
 
         if (s.isGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
@@ -147,7 +153,6 @@ public class ThundarrIDS implements IPlayer, IAuto {
         } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
             int valor = heuristica(s);
             // zobristTable.put(hash, valor);
-            depthmax = depth;
             return valor;
         }
 
@@ -167,27 +172,31 @@ public class ThundarrIDS implements IPlayer, IAuto {
             }
 
         }
-        // searchScores.put(depth, minEval);
 
         // zobristTable.put(hash, minEval); // Guardem el valor en la zobrist table
         return minEval;
     }
 
+    /**
+     * Algoritme min de minimax
+     * 
+     * @param s     Estat del game.
+     * @param depth Profunditat de la cerca.
+     * @param beta  Valor de beta (poda).
+     * @param alpha Valor de alpha (poda).
+     * @return valor de la heurística.
+     */
     int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
         if (timeout) {
-            int valor = searchScores.getOrDefault(depthmax, Integer.MIN_VALUE);
-            System.out.println("TIMEOUT VALOR: " + evalanterior);
             return evalanterior;
-            // return valor;
         }
 
-        /*
-         * long hash = calculaBoardHash(s);
-         * int value = treuZobrist(hash);
-         * if (value != Integer.MIN_VALUE) {
-         * return value;
-         * }
-         */
+        long hash = calculaBoardHash(s);
+        if (zobristTable.containsKey(hash)) {
+            System.out.println("Zobrist");
+
+            return zobristTable.get(hash);
+        }
 
         if (s.isGameOver()) { // Ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
@@ -205,9 +214,9 @@ public class ThundarrIDS implements IPlayer, IAuto {
 
         // Iterem sobre tots el moviments nous posibles
         for (int i = 0; i < moves.size(); i++) {
-            GameStatus fill = new GameStatus(s);
-            fill.movePiece(moves.get(i));
-            maxEval = Math.max(maxEval, minMinimax(fill, depth - 1, beta, alpha));
+            GameStatus s_aux = new GameStatus(s);
+            s_aux.movePiece(moves.get(i));
+            maxEval = Math.max(maxEval, minMinimax(s_aux, depth - 1, beta, alpha));
             alpha = Math.max(alpha, maxEval);
             if (alpha >= beta) {
                 break;
@@ -219,6 +228,12 @@ public class ThundarrIDS implements IPlayer, IAuto {
         return maxEval;
     }
 
+    /**
+     * Funcio que calcula la heuristica del tauler
+     * 
+     * @param s Tauler i estat actual de joc.
+     * @return Puntuacio de la heuristica.
+     */
     public int heuristica(GameStatus s) {
         int puntuacio = 0;
         int stability = 0;
@@ -229,13 +244,14 @@ public class ThundarrIDS implements IPlayer, IAuto {
         int percentatge = 0;
         int permanent = 0;
         // Heuristica 1: Contar el numero de peces del tauler
-        // Heuristica 2: Contar el numero de peces permanents
+        // Heuristica 2: Contar el numero de peces permanents (semipermantenents)
         // (es a dir, que no poden ser girades per l'oponent)
         // Heuristica 3: contar el numero de moviments possibles (movilitat)
-        // Heuristica 4 contar numero de peces i fer percentatge
+        // Heuristica 4 contar numero de peces i fer percentatge en el lategame
+        // Heuristica 5 actualitzem taula pesos per les cantonades ()
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-
+                CellType pecaactual = s.getPos(i, j);
                 // 3
                 if (s.canMove(new Point(i, j), myType)) {
                     blackMoves++;
@@ -252,21 +268,24 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 }
                 // Miramos si estan en el exterior (priorizamos)
                 if (i == 0 || i == 7 || j == 0 || j == 7) {
-                    if (s.getPos(i, j) == myType) {
+                    if (pecaactual == myType) {
                         puntuacio += 20;
                     }
-                    if (s.getPos(i, j) == hisType) {
+                    if (pecaactual == hisType) {
                         puntuacio -= 20;
                     }
                 }
 
+                // Actualitzem la taula de pesos
+                actualitzaTaulaPesos(i, j, pecaactual);
+
                 // 1
-                if (s.getPos(i, j) == myType) {
+                if (pecaactual == myType) {
                     puntuacio += V[i][j];
                     // 4
                     pecesnostres++;
                 }
-                if (s.getPos(i, j) == hisType) {
+                if (pecaactual == hisType) {
                     puntuacio -= V[i][j];
                     // 4
                     pecescontrari++;
@@ -288,17 +307,87 @@ public class ThundarrIDS implements IPlayer, IAuto {
         return puntuacio + stability + percentatge + permanent;
     }
 
-    // Funcion que comprueba si una casilla es estable
+    /**
+     * Actualitza la taula de pesos en funcio si tenim una peca nostra o del
+     * contrari posada en cantonades.
+     *
+     * @param i          Coordenada i que comprovem.
+     * @param j          Coordenada j que comprovem.
+     * @param pecaactual Peca que estem comprovant que sigui nostra o seva.
+     * 
+     * @return -
+     */
+    private void actualitzaTaulaPesos(int i, int j, CellType pecaactual) {
+        if (i == 0 && j == 0) {
+            if (pecaactual == myType) {
+                V[1][0] = 50;
+                V[0][1] = 50;
+            } else if (pecaactual == hisType) {
+                V[1][0] = -50;
+                V[0][1] = -50;
+            }
+        }
+        if (i == 0 && j == 7) {
+            if (pecaactual == myType) {
+                V[0][6] = 50;
+                V[1][7] = 50;
+            } else if (pecaactual == hisType) {
+                V[0][6] = -50;
+                V[1][7] = -50;
+            }
+        }
+        if (i == 7 && j == 0) {
+            if (pecaactual == myType) {
+                V[7][1] = 50;
+                V[6][0] = 50;
+            } else if (pecaactual == hisType) {
+                V[7][1] = -50;
+                V[6][0] = -50;
+            }
+        }
+        if (i == 7 && j == 7) {
+            if (pecaactual == myType) {
+                V[7][6] = 50;
+                V[6][7] = 50;
+            } else if (pecaactual == hisType) {
+                V[7][6] = -50;
+                V[6][7] = -50;
+            }
+        }
+    }
+
+    /**
+     * Comprova si la peca es estable o no. (semiestable)
+     *
+     * @param s      Tauler i estat actual de joc.
+     * @param row    Coordenada de fila que comprovem.
+     * @param col    Coordenada de columna que comprovem.
+     * @param player Tipus de peça que comprovem.
+     * 
+     * @return True si la peça es estable, false si no ho es.
+     */
     public boolean isEstable(GameStatus s, int row, int col, CellType player) {
-        // check if the piece is surrounded on all sides
+        // Comprova si la peça està rodejada per tots els costats
         return isEnvoltat(s, row, col, player, -1, 0) &&
                 isEnvoltat(s, row, col, player, 1, 0) &&
                 isEnvoltat(s, row, col, player, 0, -1) &&
                 isEnvoltat(s, row, col, player, 0, 1);
     }
 
+    /**
+     * Comprova si la peca es envoltada en la direccio donada.
+     *
+     * @param s        Tauler i estat actual de joc.
+     * @param row      Coordenada de fila que comprovem.
+     * @param col      Coordenada de columna que comprovem.
+     * @param player   Tipus de peça que comprovem.
+     * @param rowDelta Coordenada de la nova fila que comprovem.
+     * @param colDelta Coordenada de la nova columna que comprovem.
+     * 
+     * @return True si la peça es envoltada, false si no ho es.
+     */
     private boolean isEnvoltat(GameStatus s, int row, int col, CellType player, int rowDelta, int colDelta) {
-        // check if the piece is surrounded in the given direction
+        // Comprovem si la peça esta envoltada en la direccio donada
         int newRow = row + rowDelta;
         int newCol = col + colDelta;
         if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
@@ -306,7 +395,7 @@ public class ThundarrIDS implements IPlayer, IAuto {
             return false;
         }
         if (s.getPos(newRow, newCol) == player) {
-            // mateixa color, no envoltat
+            // mateix color, no envoltat
             return false;
         }
         if (s.getPos(newRow, newCol) == CellType.EMPTY) {
@@ -317,10 +406,22 @@ public class ThundarrIDS implements IPlayer, IAuto {
         return isEnvoltat(s, newRow, newCol, player, rowDelta, colDelta);
     }
 
+    /**
+     * Busca el valor del estat del tauler en la taula de hash si existeix.
+     * 
+     * @param hash
+     * @return Valor de la taula de hash
+     */
     public int treuZobrist(long hash) {
         return zobristTable.getOrDefault(hash, Integer.MIN_VALUE);
     }
 
+    /**
+     * Calcula el hash del tauler
+     * 
+     * @param s Tauler i estat actual de joc.
+     * @return Hash del tauler.
+     */
     public long calculaBoardHash(GameStatus s) {
         long hash = 0;
         for (int i = 0; i < BOARD_SIZE; i++) {
@@ -328,13 +429,12 @@ public class ThundarrIDS implements IPlayer, IAuto {
                 // si el cuadrat esta ocupat per una peça, XOR el seu valor hash al hash total
                 // hash
                 CellType peca = s.getPos(i, j);
-                if (peca == CellType.PLAYER1) {
+                if (peca != CellType.EMPTY) {
                     hash ^= zobristKeys[i][j][0];
-                } else if (peca == CellType.PLAYER2) {
                     hash ^= zobristKeys[i][j][1];
                 }
             }
         }
-        return hash;
+        return Math.abs(hash);
     }
 }
