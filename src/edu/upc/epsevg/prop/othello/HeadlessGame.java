@@ -30,12 +30,12 @@ public class HeadlessGame {
     private int timeout;
 
     public static void main(String[] args) {
-
+        
         IPlayer player1 = new ThundarrIDS();
         //Player player2 = new RandomPlayer("Desdesmonasia");
         IPlayer player2 = new DesdemonaPlayer(2);//GB
 
-        HeadlessGame game = new HeadlessGame(player1, player2, 2, 10);
+        HeadlessGame game = new HeadlessGame(player1, player2, 3, 10);
         GameResult gr = game.start();
         System.out.println(gr);
 
