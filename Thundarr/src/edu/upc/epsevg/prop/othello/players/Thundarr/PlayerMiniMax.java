@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 /**
- * Jugador aleatori
+ * Jugador MinMax sense IDS
  * 
  * @author bernat
  */
@@ -29,6 +29,13 @@ public class PlayerMiniMax implements IPlayer, IAuto {
     private int V[][];
     private int depth;
 
+    /**
+     * Decideix el moviment del jugador donat un tauler i un color de peça que
+     * ha de posar.
+     *
+     * @param depth Profunditat de la cerca.
+     * 
+     */
     public PlayerMiniMax(int depth) {
 
         V = new int[8][8];
@@ -50,6 +57,11 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         this.depth = depth;
     }
 
+    /**
+     * Ens dona el nom del jugador.
+     * 
+     * @return Nom del jugador.
+     */
     @Override
     public String getName() {
         return "Thundarr";
@@ -78,6 +90,14 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         return new Move(mov, 0L, 0, SearchType.MINIMAX);
     }
 
+    /**
+     * Decideix el moviment del jugador donat un tauler i un color de peça que
+     * ha de posar.
+     *
+     * @param s     Tauler i estat actual de joc.
+     * @param depth Profunditat de la cerca
+     * @return el millor moviment que fa el jugador.
+     */
     Point triaPosicio(GameStatus s, int depth) {
         int maxEval = Integer.MIN_VALUE;
         Point bestMove = new Point();
@@ -94,6 +114,15 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         return bestMove;
     }
 
+    /**
+     * Algoritme min de minimax
+     * 
+     * @param s     Tauler i estat actual de joc.
+     * @param depth Profunditat de la cerca.
+     * @param beta  Valor de beta (poda).
+     * @param alpha Valor de alpha (poda).
+     * @return valor de la heurística.
+     */
     int minMinimax(GameStatus s, int depth, int beta, int alpha) {
         if (s.isGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
@@ -121,6 +150,15 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         return minEval;
     }
 
+    /**
+     * Algoritme min de minimax
+     * 
+     * @param s     Tauler i estat actual de joc.
+     * @param depth Profunditat de la cerca.
+     * @param beta  Valor de beta (poda).
+     * @param alpha Valor de alpha (poda).
+     * @return valor de la heurística.
+     */
     int maxMiniMax(GameStatus s, int depth, int beta, int alpha) {
 
         if (s.isGameOver()) { // Ha guanyat algu
@@ -149,6 +187,20 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         return maxEval;
     }
 
+    /**
+     * Funcio que calcula la heuristica del tauler
+     * Heuristica 1: Contar el numero de peces del tauler en el lategame
+     * Heuristica 2: Contar el numero de peces permanents (semipermanents)
+     * (es a dir, que no poden ser girades per l'oponent)
+     * Heuristica 3: contar el numero de moviments possibles (movilitat)
+     * Heuristica 4 actualitzem taula pesos per les cantonades ()
+     * Heuristica 5: Afegim bonus quan una peca esta a les cantonades
+     * (i == 0 || 7)
+     * (j == 0 || 7)
+     * 
+     * @param s Tauler i estat actual de joc.
+     * @return Puntuacio de la heuristica.
+     */
     public int heuristica(GameStatus s) {
         int puntuacio = 0;
         int stability = 0;
@@ -158,14 +210,10 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         int whiteMoves = 0;
         int percentatge = 0;
         int permanent = 0;
-        // Heuristica 1: Contar el numero de peces del tauler
-        // Heuristica 2: Contar el numero de peces permanents
-        // (es a dir, que no poden ser girades per l'oponent)
-        // Heuristica 3: contar el numero de moviments possibles (movilitat)
-        // Heuristica 4 contar numero de peces i fer percentatge
+
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
-
+                CellType pecaactual = s.getPos(i, j);
                 // 3
                 if (s.canMove(new Point(i, j), myType)) {
                     blackMoves++;
@@ -173,30 +221,35 @@ public class PlayerMiniMax implements IPlayer, IAuto {
                 if (s.canMove(new Point(i, j), hisType)) {
                     whiteMoves++;
                 }
-                // 2 TODO MIRAR QUE CASILLA ES LA DEL CENTrO
+
+                // 2
                 if (isEstable(s, i, j, myType)) {
                     stability++;
                 }
                 if (isEstable(s, i, j, hisType)) {
                     stability--;
                 }
+
                 // Miramos si estan en el exterior (priorizamos)
                 if (i == 0 || i == 7 || j == 0 || j == 7) {
-                    if (s.getPos(i, j) == myType) {
+                    if (pecaactual == myType) {
                         puntuacio += 20;
                     }
-                    if (s.getPos(i, j) == hisType) {
+                    if (pecaactual == hisType) {
                         puntuacio -= 20;
                     }
                 }
 
+                // Actualitzem la taula de pesos
+                actualitzaTaulaPesos(i, j, pecaactual);
+
                 // 1
-                if (s.getPos(i, j) == myType) {
+                if (pecaactual == myType) {
                     puntuacio += V[i][j];
                     // 4
                     pecesnostres++;
                 }
-                if (s.getPos(i, j) == hisType) {
+                if (pecaactual == hisType) {
                     puntuacio -= V[i][j];
                     // 4
                     pecescontrari++;
@@ -204,12 +257,12 @@ public class PlayerMiniMax implements IPlayer, IAuto {
             }
         }
 
-        // Si es a partir de 32 peces comptem les peces
-        if (pecesnostres + pecescontrari >= 50) {
+        // Si es a partir de 46 peces comptem les peces
+        if (pecesnostres + pecescontrari >= 46) {
             percentatge = 100 * (pecesnostres - pecescontrari) / (pecesnostres + pecescontrari);
         }
 
-        // Add a bonus to the score for the player with more legal moves
+        // Afegim bonus a la puntuacio amb el jugador que te mes moviments
         if (blackMoves > whiteMoves) {
             puntuacio += 2;
         } else if (whiteMoves > blackMoves) {
@@ -218,17 +271,87 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         return puntuacio + stability + percentatge + permanent;
     }
 
-    // Funcion que comprueba si una casilla es estable
+    /**
+     * Actualitza la taula de pesos en funcio si tenim una peca nostra o del
+     * contrari posada en cantonades.
+     *
+     * @param i          Coordenada i que comprovem.
+     * @param j          Coordenada j que comprovem.
+     * @param pecaactual Peca que estem comprovant que sigui nostra o seva.
+     * 
+     * @return -
+     */
+    private void actualitzaTaulaPesos(int i, int j, CellType pecaactual) {
+        if (i == 0 && j == 0) {
+            if (pecaactual == myType) {
+                V[1][0] = 50;
+                V[0][1] = 50;
+            } else if (pecaactual == hisType) {
+                V[1][0] = -50;
+                V[0][1] = -50;
+            }
+        }
+        if (i == 0 && j == 7) {
+            if (pecaactual == myType) {
+                V[0][6] = 50;
+                V[1][7] = 50;
+            } else if (pecaactual == hisType) {
+                V[0][6] = -50;
+                V[1][7] = -50;
+            }
+        }
+        if (i == 7 && j == 0) {
+            if (pecaactual == myType) {
+                V[7][1] = 50;
+                V[6][0] = 50;
+            } else if (pecaactual == hisType) {
+                V[7][1] = -50;
+                V[6][0] = -50;
+            }
+        }
+        if (i == 7 && j == 7) {
+            if (pecaactual == myType) {
+                V[7][6] = 50;
+                V[6][7] = 50;
+            } else if (pecaactual == hisType) {
+                V[7][6] = -50;
+                V[6][7] = -50;
+            }
+        }
+    }
+
+    /**
+     * Comprova si la peca es estable o no. (semiestable)
+     *
+     * @param s      Tauler i estat actual de joc.
+     * @param row    Coordenada de fila que comprovem.
+     * @param col    Coordenada de columna que comprovem.
+     * @param player Tipus de peça que comprovem.
+     * 
+     * @return True si la peça es estable, false si no ho es.
+     */
     public boolean isEstable(GameStatus s, int row, int col, CellType player) {
-        // check if the piece is surrounded on all sides
+        // Comprova si la peça està rodejada per tots els costats
         return isEnvoltat(s, row, col, player, -1, 0) &&
                 isEnvoltat(s, row, col, player, 1, 0) &&
                 isEnvoltat(s, row, col, player, 0, -1) &&
                 isEnvoltat(s, row, col, player, 0, 1);
     }
 
+    /**
+     * Comprova si la peca es envoltada en la direccio donada.
+     *
+     * @param s        Tauler i estat actual de joc.
+     * @param row      Coordenada de fila que comprovem.
+     * @param col      Coordenada de columna que comprovem.
+     * @param player   Tipus de peça que comprovem.
+     * @param rowDelta Coordenada de la nova fila que comprovem.
+     * @param colDelta Coordenada de la nova columna que comprovem.
+     * 
+     * @return True si la peça es envoltada, false si no ho es.
+     */
     private boolean isEnvoltat(GameStatus s, int row, int col, CellType player, int rowDelta, int colDelta) {
-        // check if the piece is surrounded in the given direction
+        // Comprovem si la peça esta envoltada en la direccio donada
         int newRow = row + rowDelta;
         int newCol = col + colDelta;
         if (newRow < 0 || newRow >= BOARD_SIZE || newCol < 0 || newCol >= BOARD_SIZE) {
@@ -236,7 +359,7 @@ public class PlayerMiniMax implements IPlayer, IAuto {
             return false;
         }
         if (s.getPos(newRow, newCol) == player) {
-            // mateixa color, no envoltat
+            // mateix color, no envoltat
             return false;
         }
         if (s.getPos(newRow, newCol) == CellType.EMPTY) {

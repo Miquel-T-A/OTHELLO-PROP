@@ -37,14 +37,14 @@ public class PlayerID implements IPlayer, IAuto {
 
         // Matriz de puntuaciones
 
-        V[0] = new int[] { 100, -3, 11, 8, 8, 11, -3, 100 };
-        V[1] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
+        V[0] = new int[] { 100, -30, 11, 8, 8, 11, -30, 100 };
+        V[1] = new int[] { -30, -7, -4, 1, 1, -4, -7, -30 };
         V[2] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
         V[3] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
         V[4] = new int[] { 8, 1, 2, -3, -3, 2, 1, 8 };
         V[5] = new int[] { 11, -4, 2, 2, 2, 2, -4, 11 };
-        V[6] = new int[] { -3, -7, -4, 1, 1, -4, -7, -3 };
-        V[7] = new int[] { 100, -3, 11, 8, 8, 11, -3, 100 };
+        V[6] = new int[] { -30, -7, -4, 1, 1, -4, -7, -30 };
+        V[7] = new int[] { 100, -30, 11, 8, 8, 11, -30, 100 };
 
         this.name = getName();
         zobristTable = new HashMap<>();
@@ -117,8 +117,8 @@ public class PlayerID implements IPlayer, IAuto {
             }
             evalanterior = maxEval;
             depth++;
-            System.out.println("PROFUNDITAT: " + depth + " " + evalanterior);
         }
+        System.out.println("PROFUNDITAT: " + depth + " " + evalanterior);
 
         System.out.println(
                 "MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + maxEval
@@ -153,7 +153,10 @@ public class PlayerID implements IPlayer, IAuto {
             if (zobristTable.containsKey(hash)) {
                 return zobristTable.get(hash);
             }
+
             int valor = heuristica(s);
+
+            // Guardem el valor de la heuristica en la taula hash
             zobristTable.put(hash, valor);
             return valor;
         }
@@ -205,6 +208,8 @@ public class PlayerID implements IPlayer, IAuto {
             }
 
             int valor = heuristica(s);
+
+            // Guardem el valor de la heuristica en la taula hash
             zobristTable.put(hash, valor);
             return valor;
         }
@@ -228,6 +233,14 @@ public class PlayerID implements IPlayer, IAuto {
 
     /**
      * Funcio que calcula la heuristica del tauler
+     * Heuristica 1: Contar el numero de peces del tauler en el lategame
+     * Heuristica 2: Contar el numero de peces permanents (semipermanents)
+     * (es a dir, que no poden ser girades per l'oponent)
+     * Heuristica 3: contar el numero de moviments possibles (movilitat)
+     * Heuristica 4 actualitzem taula pesos per les cantonades ()
+     * Heuristica 5: Afegim bonus quan una peca esta a les cantonades
+     * (i == 0 || 7)
+     * (j == 0 || 7)
      * 
      * @param s Tauler i estat actual de joc.
      * @return Puntuacio de la heuristica.
@@ -241,12 +254,7 @@ public class PlayerID implements IPlayer, IAuto {
         int whiteMoves = 0;
         int percentatge = 0;
         int permanent = 0;
-        // Heuristica 1: Contar el numero de peces del tauler
-        // Heuristica 2: Contar el numero de peces permanents (semipermantenents)
-        // (es a dir, que no poden ser girades per l'oponent)
-        // Heuristica 3: contar el numero de moviments possibles (movilitat)
-        // Heuristica 4 contar numero de peces i fer percentatge en el lategame
-        // Heuristica 5 actualitzem taula pesos per les cantonades ()
+
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 CellType pecaactual = s.getPos(i, j);
@@ -257,13 +265,15 @@ public class PlayerID implements IPlayer, IAuto {
                 if (s.canMove(new Point(i, j), hisType)) {
                     whiteMoves++;
                 }
-                // 2 TODO: MIRAR QUE CASILLA ES LA DEL CENTrO
+
+                // 2
                 if (isEstable(s, i, j, myType)) {
                     stability++;
                 }
                 if (isEstable(s, i, j, hisType)) {
                     stability--;
                 }
+
                 // Miramos si estan en el exterior (priorizamos)
                 if (i == 0 || i == 7 || j == 0 || j == 7) {
                     if (pecaactual == myType) {
@@ -291,12 +301,12 @@ public class PlayerID implements IPlayer, IAuto {
             }
         }
 
-        // Si es a partir de 32 peces comptem les peces
+        // Si es a partir de 46 peces comptem les peces
         if (pecesnostres + pecescontrari >= 46) {
             percentatge = 100 * (pecesnostres - pecescontrari) / (pecesnostres + pecescontrari);
         }
 
-        // Add a bonus to the score for the player with more legal moves
+        // Afegim bonus a la puntuacio amb el jugador que te mes moviments
         if (blackMoves > whiteMoves) {
             puntuacio += 2;
         } else if (whiteMoves > blackMoves) {
@@ -403,16 +413,6 @@ public class PlayerID implements IPlayer, IAuto {
         }
         // Comprovem el seguent espai en la direccio donada
         return isEnvoltat(s, newRow, newCol, player, rowDelta, colDelta);
-    }
-
-    /**
-     * Busca el valor del estat del tauler en la taula de hash si existeix.
-     * 
-     * @param hash
-     * @return Valor de la taula de hash
-     */
-    public int treuZobrist(long hash) {
-        return zobristTable.getOrDefault(hash, Integer.MIN_VALUE);
     }
 
     /**

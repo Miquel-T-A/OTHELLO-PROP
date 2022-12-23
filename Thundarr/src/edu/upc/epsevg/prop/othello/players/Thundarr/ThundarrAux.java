@@ -8,6 +8,13 @@ public class ThundarrAux extends GameStatus {
         super(s);
     }
 
+    /**
+     * Funcio per obtenir el color de la casella
+     * 
+     * @param fila    Posicio de la fila
+     * @param columna Posicio de la columna
+     * @return 0 si es negra, 1 si es blanca
+     */
     public int getColor(int fila, int columna) {
         int valor = fila + columna * 8;
         return (board_color.get(valor) ? 1 : 0);

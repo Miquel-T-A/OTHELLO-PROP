@@ -8,7 +8,6 @@ package edu.upc.epsevg.prop.othello;
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
 import edu.upc.epsevg.prop.othello.players.RandomPlayer;
 import edu.upc.epsevg.prop.othello.players.Thundarr.PlayerID;
-import edu.upc.epsevg.prop.othello.players.Thundarr.ThundarrMinMax;
 import java.lang.ref.WeakReference;
 
 import java.util.ArrayList;
