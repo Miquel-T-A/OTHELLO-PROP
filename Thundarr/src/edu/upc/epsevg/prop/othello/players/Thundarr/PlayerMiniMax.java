@@ -7,10 +7,7 @@ import edu.upc.epsevg.prop.othello.IPlayer;
 import edu.upc.epsevg.prop.othello.Move;
 import edu.upc.epsevg.prop.othello.SearchType;
 import java.awt.Point;
-import java.io.Console;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
 
 /**
  * Jugador MinMax sense IDS
@@ -30,8 +27,7 @@ public class PlayerMiniMax implements IPlayer, IAuto {
     private int depth;
 
     /**
-     * Decideix el moviment del jugador donat un tauler i un color de peça que
-     * ha de posar.
+     * Constructor del jugador amb minimax.
      *
      * @param depth Profunditat de la cerca.
      * 

@@ -8,6 +8,7 @@ package edu.upc.epsevg.prop.othello;
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
 import edu.upc.epsevg.prop.othello.players.RandomPlayer;
 import edu.upc.epsevg.prop.othello.players.Thundarr.PlayerID;
+
 import java.lang.ref.WeakReference;
 
 import java.util.ArrayList;
@@ -31,10 +32,10 @@ public class HeadlessGame {
     public static void main(String[] args) {
         
         IPlayer player1 = new PlayerID();
-        //Player player2 = new RandomPlayer("Desdesmonasia");
+        //IPlayer player2 = new RandomPlayer("Desdesmonasia");
         IPlayer player2 = new DesdemonaPlayer(2);//GB
 
-        HeadlessGame game = new HeadlessGame(player1, player2, 4, 15);
+        HeadlessGame game = new HeadlessGame(player1, player2, 2, 5);
         GameResult gr = game.start();
         System.out.println(gr);
 

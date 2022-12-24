@@ -3,7 +3,17 @@ package edu.upc.epsevg.prop.othello.players.Thundarr;
 
 import edu.upc.epsevg.prop.othello.GameStatus;
 
+/**
+ * Classe auxiliar per a obtenir informacio de la taula
+ * 
+ * @author Miquel Torres, Pau Raduà
+ */
 public class ThundarrAux extends GameStatus {
+    /**
+     * Constructor per a crear un nou objecte auxiliar
+     * 
+     * @param s Objecte de la classe GameStatus
+     */
     public ThundarrAux(GameStatus s) {
         super(s);
     }

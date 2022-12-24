@@ -8,6 +8,7 @@ import edu.upc.epsevg.prop.othello.Move;
 import edu.upc.epsevg.prop.othello.SearchType;
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -30,13 +31,17 @@ public class PlayerID implements IPlayer, IAuto {
     private int evalanterior = 0; // Valor de la evaluación de profundidad anterior
     private int nodesexplorats = 0; // Número de nodos explorados
     private InfoNode[] taulaTransposicio; // Taula de transposició
-    private long N = 119304599; // Número de posicions de la taula de transposició
+    private long N; // Número de posicions de la taula de transposició
+    private HashMap<Long, InfoNode> taulaTransposicio2 = new HashMap<Long, InfoNode>(); // Taula de transposició
 
-    public PlayerID(int gigas) {
-        // 1GB = 59652323
-        // 2GB = 119304599
-        N = 59652323 * gigas;
-        taulaTransposicio = new InfoNode[(int) N];
+    /**
+     * Constructor de la classe de Jugador amb IDS.
+     */
+    public PlayerID() {
+
+        int gigas = 2;
+        N = 1024 * 1024 * 1024 * gigas;
+        // taulaTransposicio = new InfoNode[(int) N];
 
         V = new int[8][8];
 
@@ -109,7 +114,6 @@ public class PlayerID implements IPlayer, IAuto {
         while (!timeout) {
             // Evitem que es quedi bucle infinit si no hi ha moviments
             if (moves.size() == 0) {
-                System.out.println("No hi ha moviments");
                 bestMove = null;
                 break;
             }
@@ -128,11 +132,10 @@ public class PlayerID implements IPlayer, IAuto {
             evalanterior = maxEval;
             depth++;
         }
-        System.out.println("PROFUNDITAT: " + depth + " " + evalanterior);
+        // System.out.println("PROFUNDITAT: " + depth + " " + evalanterior);
 
-        System.out.println(
-                "MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + " " + bestMove + " " + maxEval
-                        + " NODESEXPLORATS: " + nodesexplorats);
+        // System.out.println("MOVIMIENTO: " + indicemov + "de" + (moves.size() - 1) + "
+        // " + bestMove + " " + maxEval+ " NODESEXPLORATS: " + nodesexplorats);
 
         return new Move(bestMove, 0L, 0, SearchType.MINIMAX_IDS);
     }
@@ -168,9 +171,10 @@ public class PlayerID implements IPlayer, IAuto {
 
         // Node intermig
         long hash = calculaBoardHash(s);
-        int posicio = (int) (hash % N);
+        // int posicio = (int) (hash % N);
 
-        InfoNode info = taulaTransposicio[posicio];
+        // InfoNode info = taulaTransposicio[posicio];
+        InfoNode info = taulaTransposicio2.get(hash);
         byte color = (byte) (s.getCurrentPlayer() == myType ? 1 : 0);
         if (info != null && info.color == color) {
             millorindex = (int) info.millorfill;
@@ -186,7 +190,6 @@ public class PlayerID implements IPlayer, IAuto {
         // Evitem que retorni un valor que no és correcte quan no tenim moviments i
         // continuem amb el contrari
         if (moves.size() == 0) {
-            System.out.println("No hi ha moviments");
             s_aux.skipTurn();
             minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
         } else {
@@ -197,7 +200,7 @@ public class PlayerID implements IPlayer, IAuto {
                 beta = Math.min(beta, minEval);
             }
             // Iterem sobre tots el moviments nous posibles
-            int ant = 0;
+            // int ant = 0;
             for (int i = 0; i < moves.size(); i++) {
                 // Saltem el millor moviment
                 if (millorindex != -1 && i == millorindex)
@@ -206,18 +209,20 @@ public class PlayerID implements IPlayer, IAuto {
                 // Movem la peça en el status auxiliar
                 s_aux.movePiece(moves.get(i));
                 minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
+
+                if (beta != minEval)
+                    millorindex = i;
+
                 beta = Math.min(beta, minEval);
+
                 if (alpha >= beta) {
                     break;
                 }
-                // if (minEval < ant)
-                // millorindex = i;
-                // ant = minEval;
             }
         }
         // Afegim el millor index i el seu color a la taula de transposicio
-        System.out.println("MILLOR2: " + millorindex);
-        taulaTransposicio[posicio] = new InfoNode((byte) millorindex, color);
+        taulaTransposicio2.put(hash, new InfoNode((byte) millorindex, color));
+        // taulaTransposicio[posicio] = new InfoNode((byte) millorindex, color);
         return minEval;
     }
 
@@ -245,19 +250,20 @@ public class PlayerID implements IPlayer, IAuto {
                 return -9999999;
         } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
             int valor = heuristica(s);
-            // Guardem el valor de la heuristica en la taula hash
             return valor;
         }
 
         // Node intermig
         long hash = calculaBoardHash(s);
-        int posicio = (int) (hash % N);
+        // int posicio = (int) (hash % N);
 
-        InfoNode info = taulaTransposicio[posicio];
+        // InfoNode info = taulaTransposicio[posicio];
+        InfoNode info = taulaTransposicio2.get(hash);
+
         byte color = (byte) (s.getCurrentPlayer() == myType ? 1 : 0);
         if (info != null && info.color == color) {
             millorindex = (int) info.millorfill;
-            System.out.println("MILLOR: " + millorindex);
+            // System.out.println("MILLOR: " + millorindex);
         }
         // Comprovem que es el mateix color
 
@@ -268,7 +274,7 @@ public class PlayerID implements IPlayer, IAuto {
         // Evitem que retorni un valor que no és correcte quan no tenim moviments i
         // continuem amb el contrari
         if (moves.size() == 0) {
-            System.out.println("No hi ha moviments");
+            // System.out.println("No hi ha moviments");
             s_aux.skipTurn();
             maxEval = Math.max(maxEval, minMinimax(s_aux, depth - 1, beta, alpha));
         } else {
@@ -280,7 +286,6 @@ public class PlayerID implements IPlayer, IAuto {
             }
 
             // Iterem sobre tots el moviments nous posibles
-            int ant = 0;
             for (int i = 0; i < moves.size(); i++) {
                 // Saltem el millor moviment
                 if (millorindex != -1 && i == millorindex)
@@ -288,25 +293,21 @@ public class PlayerID implements IPlayer, IAuto {
                 s_aux = new GameStatus(s);
                 s_aux.movePiece(moves.get(i));
                 maxEval = Math.max(maxEval, minMinimax(s_aux, depth - 1, beta, alpha));
+
+                if (alpha != maxEval)
+                    millorindex = i;
+
                 alpha = Math.max(alpha, maxEval);
 
-                /*
-                 * if (alpha > maxEval) {
-                 * alpha = maxEval;
-                 * millorindex = i;
-                 * }
-                 */
                 if (alpha >= beta) {
                     break;
                 }
-                // if (maxEval > ant)
-                // millorindex = i;
-                // ant = maxEval;
+
             }
         }
-        System.out.println("MILLOR2: " + millorindex);
         // Afegim el millor index i el seu color a la taula de transposicio
-        taulaTransposicio[posicio] = new InfoNode((byte) millorindex, color);
+        taulaTransposicio2.put(hash, new InfoNode((byte) millorindex, color));
+        // taulaTransposicio[posicio] = new InfoNode((byte) millorindex, color);
 
         return maxEval;
     }
@@ -513,7 +514,7 @@ public class PlayerID implements IPlayer, IAuto {
                 }
             }
         }
-        return Math.abs(hash);
+        return hash;
     }
 
 }

@@ -6,6 +6,8 @@ import edu.upc.epsevg.prop.othello.IPlayer;
 import edu.upc.epsevg.prop.othello.players.DesdemonaPlayer;
 import edu.upc.epsevg.prop.othello.players.Thundarr.PlayerID;
 
+import edu.upc.epsevg.prop.othello.players.Thundarr.PlayerMiniMax;
+
 
 
 import javax.swing.SwingUtilities;
@@ -26,9 +28,9 @@ public class Game {
             public void run() {
                 
                 //IPlayer player1 = new HumanPlayer("Human1");
-                IPlayer player1 = new PlayerID();
+                IPlayer player1 = new DesdemonaPlayer(2);
 
-                IPlayer player2 = new DesdemonaPlayer(2);//GB
+                IPlayer player2 = new PlayerID();
 
                                 
                 new Board(player1 , player2, 2, false);
