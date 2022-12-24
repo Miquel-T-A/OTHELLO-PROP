@@ -21,7 +21,6 @@ public class PlayerID implements IPlayer, IAuto {
     private String name;
     private CellType myType;
     private CellType hisType;
-    private static HashMap<Long, Integer> zobristTable;
     private static long[][][] zobristKeys;
     private static int BOARD_SIZE = 8;
     private static Random RANDOM = new Random();
@@ -31,8 +30,14 @@ public class PlayerID implements IPlayer, IAuto {
     private int V[][];
     private int evalanterior = 0; // Valor de la evaluación de profundidad anterior
     private int nodesexplorats = 0; // Número de nodos explorados
+    private InfoNode[] taulaTransposicio; // Taula de transposició
+    long N = 119304599;taula[][][][][][InfoNode(millorfill, color)][][][]
 
     public PlayerID() {
+        // 1GB = 59652323
+        // 2GB = 119304599
+        taulaTransposicio = new InfoNode[(int) N];
+
         V = new int[8][8];
 
         // Matriz de puntuaciones
@@ -103,7 +108,13 @@ public class PlayerID implements IPlayer, IAuto {
         ArrayList<Point> moves = s.getMoves();
 
         // Fem una cerca en profunditat iterativa
-        while (!timeout && moves.size() > 0) {
+        while (!timeout) {
+            // Evitem que es quedi bucle infinit si no hi ha moviments
+            if (moves.size() == 0) {
+                bestMove = null;
+                break;
+            }
+
             for (int i = 0; i < moves.size(); i++) {
                 GameStatus s_aux = new GameStatus(s);
                 s_aux.movePiece(moves.get(i));
@@ -142,6 +153,9 @@ public class PlayerID implements IPlayer, IAuto {
             // return valor;
         }
 
+        // Millor index sense assignar
+        int millorindex = -1;
+
         if (s.isGameOver()) { // ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
@@ -149,35 +163,54 @@ public class PlayerID implements IPlayer, IAuto {
                 return -9999999;
         } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
 
-            long hash = calculaBoardHash(s);
-            if (zobristTable.containsKey(hash)) {
-                return zobristTable.get(hash);
-            }
-
             int valor = heuristica(s);
-
-            // Guardem el valor de la heuristica en la taula hash
-            zobristTable.put(hash, valor);
             return valor;
         }
+
+        // Node intermig
+        long hash = calculaBoardHash(s);
+        int posicio = (int) (hash % N);
+
+        InfoNode info = taulaTransposicio[posicio];
+        byte color = (byte) (s.getCurrentPlayer() == myType ? 1 : 0);
+        if (info != null && info.color == color)
+            millorindex = (int) info.millorfill;
+        // Comprovem que es el mateix color
 
         minEval = Integer.MAX_VALUE;
         ArrayList<Point> moves = s.getMoves();
 
-        // Iterem sobre tots el moviments nous posibles
-        for (int i = 0; i < moves.size(); i++) {
-            GameStatus s_aux = new GameStatus(s);
-            // Movem la peça en el status auxiliar
-            s_aux.movePiece(moves.get(i));
+        GameStatus s_aux = new GameStatus(s);
 
+        // Evitem que retorni un valor que no és correcte quan no tenim moviments i
+        // continuem amb el contrari
+        if (moves.size() == 0) {
+            s_aux.skipTurn();
             minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
-            beta = Math.min(beta, minEval);
-            if (alpha >= beta) {
-                break;
+        } else {
+            if (millorindex != -1) {
+                // Recorrem primer el millor moviment
+                s_aux.movePiece(moves.get(millorindex));
+                minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
+                beta = Math.min(beta, minEval);
             }
-
+            // Iterem sobre tots el moviments nous posibles
+            for (int i = 0; i < moves.size(); i++) {
+                // Saltem el millor moviment
+                if (millorindex != -1 && i == millorindex)
+                    continue;
+                s_aux = new GameStatus(s);
+                // Movem la peça en el status auxiliar
+                s_aux.movePiece(moves.get(i));
+                minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
+                beta = Math.min(beta, minEval);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
         }
-
+        // Afegim el millor index i el seu color a la taula de transposicio
+        taulaTransposicio[posicio] = new InfoNode((byte) millorindex, color);
         return minEval;
     }
 
@@ -195,38 +228,63 @@ public class PlayerID implements IPlayer, IAuto {
             return evalanterior;
         }
 
+        // Millor index sense assignar
+        int millorindex = -1;
+
         if (s.isGameOver()) { // Ha guanyat algu
             if (myType == s.GetWinner()) // Guanyem nosaltres
                 return 9999999;
             else // Guanya el contrincant
                 return -9999999;
         } else if (depth == 0) { // no hi ha moviments possibles o profunditat es 0
-
-            long hash = calculaBoardHash(s);
-            if (zobristTable.containsKey(hash)) {
-                return zobristTable.get(hash);
-            }
-
             int valor = heuristica(s);
-
             // Guardem el valor de la heuristica en la taula hash
-            zobristTable.put(hash, valor);
             return valor;
         }
+
+        // Node intermig
+        long hash = calculaBoardHash(s);
+        int posicio = (int) (hash % N);
+
+        InfoNode info = taulaTransposicio[posicio];
+        byte color = (byte) (s.getCurrentPlayer() == myType ? 1 : 0);
+        if (info != null && info.color == color)
+            millorindex = (int) info.millorfill;
+        // Comprovem que es el mateix color
 
         maxEval = Integer.MIN_VALUE;
         ArrayList<Point> moves = s.getMoves();
 
-        // Iterem sobre tots el moviments nous posibles
-        for (int i = 0; i < moves.size(); i++) {
-            GameStatus s_aux = new GameStatus(s);
-            s_aux.movePiece(moves.get(i));
+        GameStatus s_aux = new GameStatus(s);
+        // Evitem que retorni un valor que no és correcte quan no tenim moviments i
+        // continuem amb el contrari
+        if (moves.size() == 0) {
+            s_aux.skipTurn();
             maxEval = Math.max(maxEval, minMinimax(s_aux, depth - 1, beta, alpha));
-            alpha = Math.max(alpha, maxEval);
-            if (alpha >= beta) {
-                break;
+        } else {
+            if (millorindex != -1) {
+                // Recorrem primer el millor moviment
+                s_aux.movePiece(moves.get(millorindex));
+                maxEval = Math.max(maxEval, minMinimax(s_aux, depth - 1, beta, alpha));
+                alpha = Math.max(alpha, maxEval);
+            }
+
+            // Iterem sobre tots el moviments nous posibles
+            for (int i = 0; i < moves.size(); i++) {
+                // Saltem el millor moviment
+                if (millorindex != -1 && i == millorindex)
+                    continue;
+                s_aux = new GameStatus(s);
+                s_aux.movePiece(moves.get(i));
+                maxEval = Math.max(maxEval, minMinimax(s_aux, depth - 1, beta, alpha));
+                alpha = Math.max(alpha, maxEval);
+                if (alpha >= beta) {
+                    break;
+                }
             }
         }
+        // Afegim el millor index i el seu color a la taula de transposicio
+        taulaTransposicio[posicio] = new InfoNode((byte) millorindex, color);
 
         return maxEval;
     }
@@ -301,8 +359,8 @@ public class PlayerID implements IPlayer, IAuto {
             }
         }
 
-        // Si es a partir de 46 peces comptem les peces
-        if (pecesnostres + pecescontrari >= 46) {
+        // Si es a partir de 48 peces comptem les peces
+        if (pecesnostres + pecescontrari >= 48) {
             percentatge = 100 * (pecesnostres - pecescontrari) / (pecesnostres + pecescontrari);
         }
 
@@ -433,7 +491,7 @@ public class PlayerID implements IPlayer, IAuto {
                 }
             }
         }
-        return hash;
+        return Math.abs(hash);
     }
 
 }

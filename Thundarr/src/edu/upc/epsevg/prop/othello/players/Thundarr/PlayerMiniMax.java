@@ -136,17 +136,25 @@ public class PlayerMiniMax implements IPlayer, IAuto {
         minEval = Integer.MAX_VALUE;
         ArrayList<Point> moves = s.getMoves();
 
-        // Iterem sobre tots el moviments nous posibles
-        for (int i = 0; i < moves.size(); i++) {
+        // Evitem que retorni un valor que no és correcte quan no tenim moviments i
+        // continuem amb el contrari
+        if (moves.size() == 0) {
             GameStatus s_aux = new GameStatus(s);
-            // Movem la peça en el status auxiliar
-            s_aux.movePiece(moves.get(i));
+            s_aux.skipTurn();
             minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
-            beta = Math.min(beta, minEval);
-            if (alpha >= beta) {
-                break;
-            }
         }
+        // Iterem sobre tots el moviments nous posibles
+        else
+            for (int i = 0; i < moves.size(); i++) {
+                GameStatus s_aux = new GameStatus(s);
+                // Movem la peça en el status auxiliar
+                s_aux.movePiece(moves.get(i));
+                minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
+                beta = Math.min(beta, minEval);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
         return minEval;
     }
 
@@ -173,17 +181,24 @@ public class PlayerMiniMax implements IPlayer, IAuto {
 
         maxEval = Integer.MIN_VALUE + 1;
         ArrayList<Point> moves = s.getMoves();
-
-        // Iterem sobre tots el moviments nous posibles
-        for (int i = 0; i < moves.size(); i++) {
-            GameStatus fill = new GameStatus(s);
-            fill.movePiece(moves.get(i));
-            maxEval = Math.max(maxEval, minMinimax(fill, depth - 1, beta, alpha));
-            alpha = Math.max(alpha, maxEval);
-            if (alpha >= beta) {
-                break;
-            }
+        // Evitem que retorni un valor que no és correcte quan no tenim moviments i
+        // continuem amb el contrari
+        if (moves.size() == 0) {
+            GameStatus s_aux = new GameStatus(s);
+            s_aux.skipTurn();
+            minEval = Math.min(minEval, maxMiniMax(s_aux, depth - 1, beta, alpha));
         }
+        // Iterem sobre tots el moviments nous posibles
+        else
+            for (int i = 0; i < moves.size(); i++) {
+                GameStatus fill = new GameStatus(s);
+                fill.movePiece(moves.get(i));
+                maxEval = Math.max(maxEval, minMinimax(fill, depth - 1, beta, alpha));
+                alpha = Math.max(alpha, maxEval);
+                if (alpha >= beta) {
+                    break;
+                }
+            }
         return maxEval;
     }
 
